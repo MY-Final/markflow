@@ -50,7 +50,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build libgtk-3-dev
+          sudo apt-get install -y clang++ ninja-build libgtk-3-dev liblzma-dev libstdc++-12-dev
 
       - run: flutter pub get
 
@@ -59,13 +59,15 @@ jobs:
       - name: Package
         run: |
           ver="${GITHUB_REF_NAME#v}"
-          # 找到构建产物目录
+          # 找到构建产物目录（包含二进制文件）
           release_dir=$(find build/linux -type d -name "release" 2>/dev/null | head -n 1)
           if [ -z "$release_dir" ]; then
             echo "Build output not found. Listing build/linux:"
-            find build/linux -type f 2>/dev/null | head -20
+            find build/linux -maxdepth 5 -type d 2>/dev/null
             exit 1
           fi
+          echo "Found release dir: $release_dir"
+          ls -la "$release_dir"
           cd "$release_dir"
           tar czf "../../../../MarkFlow_${ver}_linux_x64.tar.gz" *
 
@@ -92,15 +94,17 @@ jobs:
       - name: Package
         run: |
           ver="${GITHUB_REF_NAME#v}"
-          # 找到构建产物目录
-          release_dir=$(find build/macos -type d -name "Release" -o -type d -name "release" 2>/dev/null | head -n 1)
-          if [ -z "$release_dir" ]; then
-            echo "Build output not found. Listing build/macos:"
-            find build/macos -type f 2>/dev/null | head -20
+          # 找到 .app 包
+          app=$(find build/macos -type d -name "*.app" 2>/dev/null | head -n 1)
+          if [ -z "$app" ]; then
+            echo "App bundle not found. Listing build/macos:"
+            find build/macos -maxdepth 5 -type d 2>/dev/null
             exit 1
           fi
-          cd "$release_dir"
-          zip -r "../../../../MarkFlow_${ver}_macos.zip" MarkFlow.app
+          echo "Found app bundle: $app"
+          cd "$(dirname "$app")"
+          app_name=$(basename "$app")
+          zip -r "../../../../MarkFlow_${ver}_macos.zip" "$app_name"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
