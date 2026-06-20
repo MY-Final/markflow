@@ -31,8 +31,11 @@ class SettingsPanel extends StatefulWidget {
           )),
           child: Align(
             alignment: Alignment.centerRight,
-            child: SettingsPanel(
-              onClose: () => Navigator.of(context).pop(),
+            child: Material(
+              color: Colors.transparent,
+              child: SettingsPanel(
+                onClose: () => Navigator.of(context).pop(),
+              ),
             ),
           ),
         );
@@ -81,26 +84,20 @@ class _SettingsPanelState extends State<SettingsPanel> {
           widget.onClose();
         }
       },
-      child: Container(
-        width: 380,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          color: theme.surface,
-          border: Border(
-            left: BorderSide(
-              color: theme.border,
-              width: 1,
-            ),
+      child: Material(
+        color: theme.surface,
+        child: SizedBox(
+          width: 380,
+          height: double.infinity,
+          child: Column(
+            children: [
+              _buildHeader(theme),
+              Expanded(
+                child: _buildContent(theme),
+              ),
+              _buildFooter(theme),
+            ],
           ),
-        ),
-        child: Column(
-          children: [
-            _buildHeader(theme),
-            Expanded(
-              child: _buildContent(theme),
-            ),
-            _buildFooter(theme),
-          ],
         ),
       ),
     );
