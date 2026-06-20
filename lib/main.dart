@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
 void main() {
   runApp(const MyApp());
@@ -7,115 +8,134 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'MarkFlow',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.light,
+        ),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MarkdownDemoPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+class MarkdownDemoPage extends StatelessWidget {
+  const MarkdownDemoPage({super.key});
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
+  static const String _sampleMarkdown = '''
+# MarkFlow - Markdown 预览演示
 
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
+## 基础语法
 
-  final String title;
+这是一段普通文本。**这是粗体**，*这是斜体*，~~这是删除线~~。
 
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
+你也可以使用 **_粗斜体_** 组合。
+
+---
+
+## 列表
+
+### 无序列表
+- 项目一
+- 项目二
+  - 子项目 A
+  - 子项目 B
+- 项目三
+
+### 有序列表
+1. 第一步
+2. 第二步
+3. 第三步
+
+---
+
+## 代码
+
+行内代码：`print("Hello World")`
+
+代码块：
+
+```dart
+void main() {
+  runApp(const MyApp());
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'MarkFlow',
+      home: const HomePage(),
+    );
   }
+}
+```
+
+---
+
+## 引用
+
+> 这是一段引用文本。
+> 
+> 可以有多行。
+
+> **嵌套引用**
+>> 这是嵌套的引用内容。
+
+---
+
+## 链接
+
+访问 [Flutter 官网](https://flutter.dev) 了解更多。
+
+GitHub 仓库：[MarkFlow](https://github.com/MY-Final/markflow)
+
+---
+
+## 表格
+
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| Markdown 渲染 | ✅ 完成 | 支持完整语法 |
+| 实时预览 | 🚧 开发中 | 编辑器 + 预览 |
+| 导出 PDF | 📋 计划中 | 未来功能 |
+
+---
+
+## 待办列表
+
+- [x] 项目初始化
+- [x] Markdown 预览
+- [ ] 编辑器功能
+- [ ] 导出功能
+
+---
+
+> 💡 **提示**：这是一个 MarkFlow 的演示页面，展示了 Flutter 中 Markdown 的渲染效果。
+''';
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: const Text('MarkFlow'),
+        centerTitle: true,
+        elevation: 0,
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+      body: Markdown(
+        data: _sampleMarkdown,
+        padding: const EdgeInsets.all(16.0),
+        onTapLink: (text, href, title) {
+          if (href != null) {
+            debugPrint('链接点击: $href');
+          }
+        },
       ),
     );
   }
