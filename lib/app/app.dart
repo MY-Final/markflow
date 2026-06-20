@@ -163,6 +163,7 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
                           child: _isPreviewMode
                               ? ModernPreviewPanel(
                                   content: _editorContent,
+                                  filePath: _currentFilePath,
                                   scrollController: _syncController.rightController,
                                 )
                               : ModernMarkdownEditor(
@@ -179,6 +180,7 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
                             flex: 2,
                             child: ModernPreviewPanel(
                               content: _editorContent,
+                              filePath: _currentFilePath,
                               scrollController: _syncController.rightController,
                             ),
                           ),

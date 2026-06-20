@@ -6,11 +6,13 @@ import 'package:markflow/features/settings/settings_service.dart';
 
 class ModernPreviewPanel extends StatefulWidget {
   final String content;
+  final String? filePath;
   final ScrollController? scrollController;
 
   const ModernPreviewPanel({
     super.key,
     this.content = '',
+    this.filePath,
     this.scrollController,
   });
 
@@ -102,21 +104,49 @@ class _ModernPreviewPanelState extends State<ModernPreviewPanel> {
       );
     }
 
-    return ScrollConfiguration(
-      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: true),
-      child: Scrollbar(
-        controller: widget.scrollController,
-        child: Markdown(
-          data: widget.content,
+    final isMarkdown = _isMarkdownFile();
+    
+    if (isMarkdown) {
+      return ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: true),
+        child: Scrollbar(
           controller: widget.scrollController,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 32,
-            vertical: 24,
+          child: Markdown(
+            data: widget.content,
+            controller: widget.scrollController,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 32,
+              vertical: 24,
+            ),
+            styleSheet: _buildMarkdownStyleSheet(theme),
           ),
-          styleSheet: _buildMarkdownStyleSheet(theme),
+        ),
+      );
+    }
+    
+    // 非Markdown文件显示纯文本
+    return SingleChildScrollView(
+      controller: widget.scrollController,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 32,
+        vertical: 24,
+      ),
+      child: SelectableText(
+        widget.content,
+        style: GoogleFonts.jetBrainsMono(
+          fontSize: 14,
+          color: theme.text,
+          height: 1.6,
         ),
       ),
     );
+  }
+
+  bool _isMarkdownFile() {
+    final filePath = widget.filePath ?? '';
+    if (filePath.isEmpty) return true;
+    final ext = filePath.split('.').last.toLowerCase();
+    return ['md', 'markdown', 'txt'].contains(ext);
   }
 
   MarkdownStyleSheet _buildMarkdownStyleSheet(MarkFlowTheme theme) {
