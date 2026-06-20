@@ -323,14 +323,7 @@ void registerCoreCommands() {
     'ctrl+s',
     'editor.save',
   );
-  shortcutRegistry.registerShortcut(
-    'ctrl+z',
-    'editor.undo',
-  );
-  shortcutRegistry.registerShortcut(
-    'ctrl+y',
-    'editor.redo',
-  );
+  // ctrl+z 和 ctrl+y 不注册快捷键，由 TextField 内建处理撤销/重做
   shortcutRegistry.registerShortcut(
     'ctrl+b',
     'editor.insertBold',
