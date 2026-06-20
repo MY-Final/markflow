@@ -134,56 +134,41 @@ class _FileExplorerState extends State<FileExplorer> {
 
   // ==================== 右键菜单操作 ====================
 
+  OverlayEntry? _contextMenuOverlay;
+
   void _showContextMenu(BuildContext anchorContext, FileTreeNode node, Offset position) {
+    _closeContextMenu();
     final theme = Theme.of(context).extension<MarkFlowTheme>()!;
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final isDir = node.isDirectory;
 
-    showMenu<String>(
-      context: context,
-      position: RelativeRect.fromRect(
-        position & const Size(40, 40),
-        Offset.zero & overlay.size,
-      ),
-      items: node.isDirectory
-          ? _buildFolderMenuItems(theme)
-          : _buildFileMenuItems(theme),
-    ).then((value) {
-      if (value != null) _handleMenuAction(value, node);
-    });
-  }
-
-  List<PopupMenuEntry<String>> _buildFolderMenuItems(MarkFlowTheme theme) {
-    return [
-      _menuItem('newFile', Icons.note_add_rounded, '新建 Markdown 文件'),
-      _menuItem('newFolder', Icons.create_new_folder_rounded, '新建文件夹'),
-      const PopupMenuDivider(),
-      _menuItem('rename', Icons.edit_rounded, '重命名'),
-      _menuItem('delete', Icons.delete_outline_rounded, '删除', isDestructive: true),
+    final items = <_ContextMenuItem>[
+      if (isDir) _ContextMenuItem('newFile', Icons.note_add_rounded, '新建 Markdown 文件'),
+      if (isDir) _ContextMenuItem('newFolder', Icons.create_new_folder_rounded, '新建文件夹'),
+      if (isDir) _ContextMenuItem('rename', Icons.edit_rounded, '重命名'),
+      if (!isDir) _ContextMenuItem('rename', Icons.edit_rounded, '重命名'),
+      if (!isDir) _ContextMenuItem('copyPath', Icons.content_copy_rounded, '复制路径'),
+      _ContextMenuItem('delete', Icons.delete_outline_rounded, '删除', isDestructive: true),
     ];
-  }
 
-  List<PopupMenuEntry<String>> _buildFileMenuItems(MarkFlowTheme theme) {
-    return [
-      _menuItem('rename', Icons.edit_rounded, '重命名'),
-      const PopupMenuDivider(),
-      _menuItem('copyPath', Icons.content_copy_rounded, '复制路径'),
-      _menuItem('delete', Icons.delete_outline_rounded, '删除', isDestructive: true),
-    ];
-  }
-
-  PopupMenuItem<String> _menuItem(String value, IconData icon, String label, {bool isDestructive = false}) {
-    final theme = Theme.of(context).extension<MarkFlowTheme>()!;
-    final color = isDestructive ? Colors.red.shade600 : theme.secondaryText;
-    return PopupMenuItem<String>(
-      value: value,
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 10),
-          Text(label, style: TextStyle(fontSize: 13, color: color)),
-        ],
+    _contextMenuOverlay = OverlayEntry(
+      builder: (ctx) => _ContextMenuWidget(
+        position: position,
+        theme: theme,
+        items: items,
+        onTap: (action) {
+          _closeContextMenu();
+          _handleMenuAction(action, node);
+        },
+        onDismiss: _closeContextMenu,
       ),
     );
+
+    Overlay.of(context).insert(_contextMenuOverlay!);
+  }
+
+  void _closeContextMenu() {
+    _contextMenuOverlay?.remove();
+    _contextMenuOverlay = null;
   }
 
   void _handleMenuAction(String action, FileTreeNode node) {
@@ -687,6 +672,142 @@ class _FileTreeItemState extends State<_FileTreeItem> {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ==================== 自定义上下文菜单 ====================
+
+class _ContextMenuItem {
+  final String action;
+  final IconData icon;
+  final String label;
+  final bool isDestructive;
+
+  _ContextMenuItem(this.action, this.icon, this.label, {this.isDestructive = false});
+}
+
+class _ContextMenuWidget extends StatefulWidget {
+  final Offset position;
+  final MarkFlowTheme theme;
+  final List<_ContextMenuItem> items;
+  final void Function(String action) onTap;
+  final VoidCallback onDismiss;
+
+  const _ContextMenuWidget({
+    required this.position,
+    required this.theme,
+    required this.items,
+    required this.onTap,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_ContextMenuWidget> createState() => _ContextMenuWidgetState();
+}
+
+class _ContextMenuWidgetState extends State<_ContextMenuWidget> {
+  int _hoveredIndex = -1;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    double left = widget.position.dx;
+    double top = widget.position.dy;
+
+    const menuWidth = 200.0;
+    final itemHeight = 34.0;
+    final menuHeight = widget.items.length * itemHeight + 8;
+
+    if (left + menuWidth > screenWidth) left = screenWidth - menuWidth - 8;
+    if (top + menuHeight > screenHeight) top = screenHeight - menuHeight - 8;
+
+    return Stack(
+      children: [
+        GestureDetector(
+          onTap: widget.onDismiss,
+          behavior: HitTestBehavior.translucent,
+          child: Container(
+            color: Colors.transparent,
+          ),
+        ),
+        Positioned(
+          left: left,
+          top: top,
+          child: MouseRegion(
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: menuWidth,
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                decoration: BoxDecoration(
+                  color: widget.theme.surface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: widget.theme.border, width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 20,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(widget.items.length, (index) {
+                    final item = widget.items[index];
+                    final isHovered = _hoveredIndex == index;
+                    final color = item.isDestructive
+                        ? Colors.red.shade600
+                        : isHovered
+                            ? widget.theme.text
+                            : widget.theme.secondaryText;
+
+                    return MouseRegion(
+                      onEnter: (_) => setState(() => _hoveredIndex = index),
+                      onExit: (_) => setState(() => _hoveredIndex = -1),
+                      child: GestureDetector(
+                        onTap: () => widget.onTap(item.action),
+                        child: Container(
+                          height: itemHeight,
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: isHovered
+                                ? (item.isDestructive
+                                    ? Colors.red.withValues(alpha: 0.08)
+                                    : widget.theme.hover)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(item.icon, size: 16, color: color),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  item.label,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: color,
+                                    fontWeight: isHovered ? FontWeight.w500 : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
