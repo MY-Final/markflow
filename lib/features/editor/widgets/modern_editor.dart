@@ -139,24 +139,27 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 行号区域
+                      // 行号区域（禁止显示滚动条）
                       if (settings.editorShowLineNumbers) ...[
                         Container(
                           width: 50,
                           color: theme.surface,
                           padding: const EdgeInsets.only(top: 40, right: 8, bottom: 40, left: 8),
-                          child: SingleChildScrollView(
-                            controller: _lineNumberScrollController,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: List.generate(
-                                _lineCount,
-                                (index) => Text(
-                                  '${index + 1}',
-                                  style: GoogleFonts.jetBrainsMono(
-                                    fontSize: settings.editorFontSize * 0.85,
-                                    height: settings.editorLineHeight,
-                                    color: theme.ghostText,
+                          child: ScrollConfiguration(
+                            behavior: _NoScrollbarBehavior(),
+                            child: SingleChildScrollView(
+                              controller: _lineNumberScrollController,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: List.generate(
+                                  _lineCount,
+                                  (index) => Text(
+                                    '${index + 1}',
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: settings.editorFontSize * 0.85,
+                                      height: settings.editorLineHeight,
+                                      color: theme.ghostText,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -320,5 +323,18 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
       case FileCategory.binary:
         return '二进制';
     }
+  }
+}
+
+/// 禁止显示滚动条和过冲指示器的 ScrollBehavior，用于行号区域
+class _NoScrollbarBehavior extends ScrollBehavior {
+  @override
+  Widget buildScrollbar(BuildContext context, Widget child, ScrollableDetails details) {
+    return child;
+  }
+
+  @override
+  Widget buildOverscrollIndicator(BuildContext context, Widget child, ScrollableDetails details) {
+    return child;
   }
 }
