@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:markflow/core/theme/theme.dart';
+import 'package:markflow/core/utils/file_utils.dart';
 import 'package:markflow/features/settings/settings_service.dart';
 
 class ModernPreviewPanel extends StatefulWidget {
@@ -9,11 +10,23 @@ class ModernPreviewPanel extends StatefulWidget {
   final String? filePath;
   final ScrollController? scrollController;
 
+  /// 文件内容分类（由上层传入，避免重复计算）
+  final FileCategory fileCategory;
+
+  /// 内容是否被截断
+  final bool isTruncated;
+
+  /// 文件总行数
+  final int totalLines;
+
   const ModernPreviewPanel({
     super.key,
     this.content = '',
     this.filePath,
     this.scrollController,
+    this.fileCategory = FileCategory.markdown,
+    this.isTruncated = false,
+    this.totalLines = 0,
   });
 
   @override
@@ -75,6 +88,40 @@ class _ModernPreviewPanelState extends State<ModernPreviewPanel> {
               letterSpacing: 0.5,
             ),
           ),
+          if (widget.isTruncated) ...[
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.orange.shade200, width: 1),
+              ),
+              child: Text(
+                '已截断 · 共 ${widget.totalLines} 行',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.orange.shade800,
+                ),
+              ),
+            ),
+          ],
+          const Spacer(),
+          // 文件类型标签
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: theme.surfaceWarm,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              _categoryDisplayName(widget.fileCategory),
+              style: TextStyle(
+                fontSize: 11,
+                color: theme.ghostText,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -104,9 +151,8 @@ class _ModernPreviewPanelState extends State<ModernPreviewPanel> {
       );
     }
 
-    final isMarkdown = _isMarkdownFile();
-    
-    if (isMarkdown) {
+    // Markdown 文件 → 渲染 Markdown 预览
+    if (widget.fileCategory == FileCategory.markdown) {
       return ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(scrollbars: true),
         child: Scrollbar(
@@ -123,8 +169,8 @@ class _ModernPreviewPanelState extends State<ModernPreviewPanel> {
         ),
       );
     }
-    
-    // 非Markdown文件显示纯文本
+
+    // 非 Markdown 文件 → 纯文本展示
     return SingleChildScrollView(
       controller: widget.scrollController,
       padding: const EdgeInsets.symmetric(
@@ -142,11 +188,19 @@ class _ModernPreviewPanelState extends State<ModernPreviewPanel> {
     );
   }
 
-  bool _isMarkdownFile() {
-    final filePath = widget.filePath ?? '';
-    if (filePath.isEmpty) return true;
-    final ext = filePath.split('.').last.toLowerCase();
-    return ['md', 'markdown', 'txt'].contains(ext);
+  String _categoryDisplayName(FileCategory category) {
+    switch (category) {
+      case FileCategory.markdown:
+        return 'Markdown';
+      case FileCategory.data:
+        return '数据文件';
+      case FileCategory.log:
+        return '日志文件';
+      case FileCategory.text:
+        return '文本文件';
+      case FileCategory.binary:
+        return '二进制';
+    }
   }
 
   MarkdownStyleSheet _buildMarkdownStyleSheet(MarkFlowTheme theme) {

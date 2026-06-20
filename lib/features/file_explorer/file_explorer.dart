@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:markflow/core/theme/theme.dart';
+import 'package:markflow/core/utils/file_utils.dart';
 
 class FileTreeNode {
   final String name;
@@ -93,7 +94,7 @@ class _FileExplorerState extends State<FileExplorer> {
             path: entity.path,
             isDirectory: true,
           ));
-        } else if (entity is File) {
+        } else if (entity is File && FileUtils.isMarkdownFile(entity.path)) {
           children.add(FileTreeNode(
             name: name,
             path: entity.path,
