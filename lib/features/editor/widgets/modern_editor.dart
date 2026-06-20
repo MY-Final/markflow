@@ -190,6 +190,141 @@ class ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
   void undo() {}
   void redo() {}
 
+  // ==================== 格式化命令 ====================
+
+  void insertStrikethrough() {
+    wrapSelectedText('~~', '~~');
+  }
+
+  void insertInlineCode() {
+    wrapSelectedText('`', '`');
+  }
+
+  void insertUnderline() {
+    wrapSelectedText('<u>', '</u>');
+  }
+
+  // ==================== 标题命令 ====================
+
+  void insertHeading(int level) {
+    final prefix = '${'#' * level} ';
+    insertAtLineStart(prefix);
+  }
+
+  void increaseHeadingLevel() {
+    final text = _controller.text;
+    final selection = _controller.selection;
+    final cursorPos = selection.start;
+
+    int lineStart = cursorPos;
+    while (lineStart > 0 && text[lineStart - 1] != '\n') {
+      lineStart--;
+    }
+
+    final lineEnd = text.indexOf('\n', cursorPos);
+    final line = text.substring(lineStart, lineEnd == -1 ? text.length : lineEnd);
+
+    final headingMatch = RegExp(r'^(#{1,6})\s').firstMatch(line);
+    if (headingMatch != null) {
+      final currentLevel = headingMatch.group(1)!.length;
+      if (currentLevel > 1) {
+        final newPrefix = '${'#' * (currentLevel - 1)} ';
+        final newLine = line.replaceFirst(RegExp(r'^#{1,6}\s'), newPrefix);
+        final newText = text.replaceRange(lineStart, lineEnd == -1 ? text.length : lineEnd, newLine);
+        _controller.value = TextEditingValue(
+          text: newText,
+          selection: TextSelection.collapsed(offset: lineStart + newPrefix.length),
+        );
+        _notifyChanged();
+      }
+    }
+  }
+
+  void decreaseHeadingLevel() {
+    final text = _controller.text;
+    final selection = _controller.selection;
+    final cursorPos = selection.start;
+
+    int lineStart = cursorPos;
+    while (lineStart > 0 && text[lineStart - 1] != '\n') {
+      lineStart--;
+    }
+
+    final lineEnd = text.indexOf('\n', cursorPos);
+    final line = text.substring(lineStart, lineEnd == -1 ? text.length : lineEnd);
+
+    final headingMatch = RegExp(r'^(#{1,6})\s').firstMatch(line);
+    if (headingMatch != null) {
+      final currentLevel = headingMatch.group(1)!.length;
+      if (currentLevel < 6) {
+        final newPrefix = '${'#' * (currentLevel + 1)} ';
+        final newLine = line.replaceFirst(RegExp(r'^#{1,6}\s'), newPrefix);
+        final newText = text.replaceRange(lineStart, lineEnd == -1 ? text.length : lineEnd, newLine);
+        _controller.value = TextEditingValue(
+          text: newText,
+          selection: TextSelection.collapsed(offset: lineStart + newPrefix.length),
+        );
+        _notifyChanged();
+      }
+    }
+  }
+
+  // ==================== 列表命令 ====================
+
+  void insertTaskList() {
+    insertAtLineStart('- [ ] ');
+  }
+
+  void indent() {
+    insertText('  ');
+  }
+
+  void outdent() {
+    final text = _controller.text;
+    final selection = _controller.selection;
+    final cursorPos = selection.start;
+
+    int lineStart = cursorPos;
+    while (lineStart > 0 && text[lineStart - 1] != '\n') {
+      lineStart--;
+    }
+
+    final line = text.substring(lineStart, cursorPos);
+    if (line.startsWith('  ')) {
+      final newText = text.replaceRange(lineStart, lineStart + 2, '');
+      _controller.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: cursorPos - 2),
+      );
+      _notifyChanged();
+    }
+  }
+
+  // ==================== 代码与公式 ====================
+
+  void insertCodeBlock() {
+    wrapSelectedText('```\n', '\n```');
+  }
+
+  void insertInlineMath() {
+    wrapSelectedText(r'$', r'$');
+  }
+
+  void insertBlockMath() {
+    wrapSelectedText('$$\n', '\n$$');
+  }
+
+  // ==================== 链接与图片 ====================
+
+  void insertImage() {
+    final selectedText = getSelectedText();
+    if (selectedText.isNotEmpty) {
+      replaceSelectedText('![$selectedText](url)');
+    } else {
+      insertText('![图片描述](url)');
+    }
+  }
+
   // ==================== UI ====================
 
   @override
