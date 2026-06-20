@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:window_manager/window_manager.dart';
 import 'package:markflow/core/theme/theme.dart';
 import 'package:markflow/features/settings/settings_panel.dart';
 
-class CustomTitleBar extends StatelessWidget {
+class CustomTitleBar extends StatefulWidget {
   final String? currentFileName;
   final bool isSaved;
   final VoidCallback? onSettingsTap;
@@ -13,6 +15,47 @@ class CustomTitleBar extends StatelessWidget {
     this.isSaved = true,
     this.onSettingsTap,
   });
+
+  @override
+  State<CustomTitleBar> createState() => _CustomTitleBarState();
+}
+
+class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
+  bool _isMaximized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      windowManager.addListener(this);
+      _checkMaximized();
+    }
+  }
+
+  @override
+  void dispose() {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      windowManager.removeListener(this);
+    }
+    super.dispose();
+  }
+
+  Future<void> _checkMaximized() async {
+    final maximized = await windowManager.isMaximized();
+    if (mounted) {
+      setState(() => _isMaximized = maximized);
+    }
+  }
+
+  @override
+  void onWindowMaximize() {
+    if (mounted) setState(() => _isMaximized = true);
+  }
+
+  @override
+  void onWindowUnmaximize() {
+    if (mounted) setState(() => _isMaximized = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,12 +74,16 @@ class CustomTitleBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // 中间可拖拽区域
           Expanded(
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
-              onPanStart: (_) {
-                // 窗口拖拽
+              onPanStart: (_) => windowManager.startDragging(),
+              onDoubleTap: () async {
+                if (await windowManager.isMaximized()) {
+                  windowManager.unmaximize();
+                } else {
+                  windowManager.maximize();
+                }
               },
               child: Center(
                 child: Row(
@@ -51,7 +98,7 @@ class CustomTitleBar extends StatelessWidget {
                         letterSpacing: 0.5,
                       ),
                     ),
-                    if (currentFileName != null) ...[
+                    if (widget.currentFileName != null) ...[
                       Text(
                         ' — ',
                         style: TextStyle(
@@ -60,13 +107,13 @@ class CustomTitleBar extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        currentFileName!,
+                        widget.currentFileName!,
                         style: TextStyle(
                           fontSize: 12,
                           color: theme.tertiaryText,
                         ),
                       ),
-                      if (!isSaved)
+                      if (!widget.isSaved)
                         Padding(
                           padding: const EdgeInsets.only(left: 4),
                           child: Container(
@@ -85,17 +132,15 @@ class CustomTitleBar extends StatelessWidget {
             ),
           ),
 
-          // 设置按钮
           _TitleBarButton(
             icon: Icons.settings_rounded,
             tooltip: 'Settings',
-            onTap: onSettingsTap ?? () => SettingsPanel.show(context),
+            onTap: widget.onSettingsTap ?? () => SettingsPanel.show(context),
             theme: theme,
           ),
 
           const SizedBox(width: 4),
 
-          // 窗口控制按钮 (Windows 风格)
           _buildWindowControls(theme),
         ],
       ),
@@ -107,17 +152,23 @@ class CustomTitleBar extends StatelessWidget {
       children: [
         _WindowButton(
           icon: Icons.remove,
-          onTap: () {},
+          onTap: () => windowManager.minimize(),
           theme: theme,
         ),
         _WindowButton(
-          icon: Icons.crop_square,
-          onTap: () {},
+          icon: _isMaximized ? Icons.filter_none : Icons.crop_square,
+          onTap: () async {
+            if (await windowManager.isMaximized()) {
+              windowManager.unmaximize();
+            } else {
+              windowManager.maximize();
+            }
+          },
           theme: theme,
         ),
         _WindowButton(
           icon: Icons.close,
-          onTap: () {},
+          onTap: () => windowManager.close(),
           theme: theme,
           isClose: true,
         ),
