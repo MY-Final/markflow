@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:markflow/core/theme/theme.dart';
+import 'package:markflow/features/settings/settings_service.dart';
 
 class ModernMarkdownEditor extends StatefulWidget {
   final String filePath;
@@ -34,7 +35,6 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
   @override
   void didUpdateWidget(ModernMarkdownEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 只在切换文件时更新内容，而不是每次输入时
     if (widget.filePath != oldWidget.filePath && widget.filePath.isNotEmpty) {
       _controller.text = widget.initialContent;
     }
@@ -50,6 +50,7 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).extension<MarkFlowTheme>()!;
+    final settings = SettingsService().settings;
 
     return Container(
       color: theme.background,
@@ -90,15 +91,15 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
                     focusNode: _focusNode,
                     maxLines: null,
                     style: GoogleFonts.inter(
-                      fontSize: 15,
-                      height: 1.9,
+                      fontSize: settings.editorFontSize,
+                      height: settings.editorLineHeight,
                       color: theme.text,
                     ),
                     decoration: InputDecoration(
-                      hintText: 'Start writing...',
+                      hintText: '开始输入...',
                       hintStyle: GoogleFonts.inter(
-                        fontSize: 15,
-                        height: 1.9,
+                        fontSize: settings.editorFontSize,
+                        height: settings.editorLineHeight,
                         color: theme.ghostText,
                       ),
                       border: InputBorder.none,
