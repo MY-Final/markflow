@@ -107,7 +107,7 @@ class _ModernFileExplorerState extends State<ModernFileExplorer> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).extension<MarkFlowTheme>()!;
-    
+
     return Container(
       width: 240,
       decoration: BoxDecoration(
@@ -141,7 +141,7 @@ class _ModernFileExplorerState extends State<ModernFileExplorer> {
           Icon(
             Icons.folder_rounded,
             size: 16,
-            color: theme.secondaryText,
+            color: theme.tertiaryText,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -150,7 +150,7 @@ class _ModernFileExplorerState extends State<ModernFileExplorer> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: theme.secondaryText,
+                color: theme.tertiaryText,
                 letterSpacing: 0.5,
               ),
               overflow: TextOverflow.ellipsis,
@@ -180,14 +180,14 @@ class _ModernFileExplorerState extends State<ModernFileExplorer> {
           Icon(
             Icons.folder_open_rounded,
             size: 48,
-            color: theme.secondaryText.withValues(alpha: 0.3),
+            color: theme.ghostText,
           ),
           const SizedBox(height: 16),
           Text(
             'No folder opened',
             style: TextStyle(
               fontSize: 13,
-              color: theme.secondaryText.withValues(alpha: 0.5),
+              color: theme.tertiaryText,
             ),
           ),
           const SizedBox(height: 8),
@@ -244,7 +244,7 @@ class _ModernFileExplorerState extends State<ModernFileExplorer> {
 
   Widget _buildFileNode(FileTreeNode node, int depth, MarkFlowTheme theme) {
     final isSelected = widget.selectedFilePath == node.path;
-    
+
     return _FileTreeItem(
       icon: _getFileIcon(node.name),
       iconColor: _getFileIconColor(node.name, theme),
@@ -294,7 +294,7 @@ class _ModernFileExplorerState extends State<ModernFileExplorer> {
       case 'yml':
         return const Color(0xFFCB171E);
       default:
-        return theme.secondaryText;
+        return theme.tertiaryText;
     }
   }
 }
@@ -334,7 +334,7 @@ class _HeaderButtonState extends State<_HeaderButton> {
           child: Icon(
             widget.icon,
             size: 16,
-            color: widget.theme.secondaryText,
+            color: widget.theme.tertiaryText,
           ),
         ),
       ),
@@ -374,61 +374,81 @@ class _FileTreeItemState extends State<_FileTreeItem> {
 
   @override
   Widget build(BuildContext context) {
+    final isActive = widget.isSelected || _isHovered;
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
         onTap: widget.onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-          child: Container(
-            height: 32,
-            padding: EdgeInsets.only(
-              left: 16.0 + widget.depth * 16,
-              right: 8,
-            ),
-            decoration: BoxDecoration(
-              color: widget.isSelected
-                  ? widget.theme.selected
-                  : _isHovered
-                      ? widget.theme.hover
-                      : Colors.transparent,
-              borderRadius: widget.isSelected || _isHovered
-                  ? BorderRadius.circular(8)
-                  : null,
-            ),
-            child: Row(
+        child: Container(
+          height: 32,
+          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+          child: Row(
             children: [
-              if (widget.isDirectory)
-                Icon(
-                  widget.icon,
-                  size: 16,
-                  color: widget.theme.secondaryText,
-                )
-              else
-                Icon(
-                  widget.icon,
-                  size: 16,
-                  color: widget.iconColor ?? widget.theme.secondaryText,
+              // 选中态竖线指示器
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 600),
+                curve: Curves.easeOutCubic,
+                width: 3,
+                height: widget.isSelected ? 24 : 0,
+                decoration: BoxDecoration(
+                  color: widget.theme.primary,
+                  borderRadius: BorderRadius.circular(2),
                 ),
-              const SizedBox(width: 8),
+              ),
+              const SizedBox(width: 4),
+              // 内容区域
               Expanded(
-                child: Text(
-                  widget.label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: widget.isSelected
-                        ? widget.theme.text
-                        : widget.theme.secondaryText,
-                    fontWeight: widget.isSelected
-                        ? FontWeight.w500
-                        : FontWeight.normal,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeOutCubic,
+                  padding: EdgeInsets.only(
+                    left: 8.0 + widget.depth * 16,
+                    right: 8,
                   ),
-                  overflow: TextOverflow.ellipsis,
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? widget.theme.selected
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  height: 32,
+                  child: Row(
+                    children: [
+                      if (widget.isDirectory)
+                        Icon(
+                          widget.icon,
+                          size: 16,
+                          color: widget.theme.tertiaryText,
+                        )
+                      else
+                        Icon(
+                          widget.icon,
+                          size: 16,
+                          color: widget.iconColor ?? widget.theme.tertiaryText,
+                        ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          widget.label,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: widget.isSelected
+                                ? widget.theme.text
+                                : widget.theme.secondaryText,
+                            fontWeight: widget.isSelected
+                                ? FontWeight.w500
+                                : FontWeight.normal,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
-          ),
           ),
         ),
       ),

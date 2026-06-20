@@ -3,8 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:markflow/core/theme/theme.dart';
 import 'package:markflow/core/registry/command_registry.dart';
 import 'package:markflow/core/registry/shortcut_registry.dart';
+import 'package:markflow/core/utils/sync_scroll_controller.dart';
 import 'package:markflow/features/title_bar/custom_title_bar.dart';
-import 'package:markflow/features/toolbar/modern_toolbar.dart';
 import 'package:markflow/features/file_explorer/modern_file_explorer.dart';
 import 'package:markflow/features/editor/widgets/modern_editor.dart';
 import 'package:markflow/features/preview/modern_preview.dart';
@@ -44,22 +44,25 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
   bool _isSidebarVisible = true;
 
   final FocusNode _focusNode = FocusNode();
+  late final SyncScrollController _syncController;
 
   @override
   void initState() {
     super.initState();
+    _syncController = SyncScrollController();
     _setupCommands();
   }
 
   @override
   void dispose() {
     _focusNode.dispose();
+    _syncController.dispose();
     super.dispose();
   }
 
   void _setupCommands() {
     final commandRegistry = CommandRegistry();
-    
+
     // Override commands with actual implementations
     commandRegistry.registerCommand(Command(
       id: 'editor.save',
@@ -123,19 +126,6 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
               isSaved: _saveStatus == 'Saved',
             ),
 
-            // 工具栏
-            ModernToolbar(
-              onBold: () => CommandRegistry().executeCommand('editor.insertBold'),
-              onItalic: () => CommandRegistry().executeCommand('editor.insertItalic'),
-              onCode: () => CommandRegistry().executeCommand('editor.insertCode'),
-              onUndo: () => CommandRegistry().executeCommand('editor.undo'),
-              onRedo: () => CommandRegistry().executeCommand('editor.redo'),
-              onTogglePreview: () {
-                CommandRegistry().executeCommand('view.togglePreview');
-              },
-              isPreviewMode: _isPreviewMode,
-            ),
-
             // 主内容区域 - 三栏布局
             Expanded(
               child: Row(
@@ -156,10 +146,12 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
                     child: _isPreviewMode
                         ? ModernPreviewPanel(
                             content: _editorContent,
+                            scrollController: _syncController.rightController,
                           )
                         : ModernMarkdownEditor(
                             initialContent: _editorContent,
                             onChanged: _handleContentChanged,
+                            scrollController: _syncController.leftController,
                           ),
                   ),
 
@@ -169,6 +161,7 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
                       flex: 2,
                       child: ModernPreviewPanel(
                         content: _editorContent,
+                        scrollController: _syncController.rightController,
                       ),
                     ),
                 ],
@@ -204,10 +197,10 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
       parts.add('alt');
     }
     parts.add(event.logicalKey.keyLabel.toLowerCase());
-    
+
     final keyCombo = parts.join('+');
     final commandId = AppShortcutRegistry().getCommandId(keyCombo);
-    
+
     if (commandId != null) {
       CommandRegistry().executeCommand(commandId);
       return KeyEventResult.handled;

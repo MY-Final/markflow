@@ -20,7 +20,7 @@ class ModernStatusBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).extension<MarkFlowTheme>()!;
-    
+
     return Container(
       height: 28,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -35,7 +35,7 @@ class ModernStatusBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // 左侧信息
+          // 左侧信息 - 使用等宽字体
           _buildStatusItem(
             theme,
             label: 'Ln $line, Col $column',
@@ -65,14 +65,15 @@ class ModernStatusBar extends StatelessWidget {
       label,
       style: TextStyle(
         fontSize: 11,
-        color: theme.secondaryText,
+        fontFamily: 'monospace',
+        color: theme.tertiaryText,
       ),
     );
   }
 
   Widget _buildSaveStatus(MarkFlowTheme theme) {
     final isSaved = saveStatus == 'Saved';
-    final color = isSaved ? const Color(0xFF34D399) : const Color(0xFFFBBF24);
+    final color = isSaved ? theme.primary : const Color(0xFFB8860B);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -90,6 +91,7 @@ class ModernStatusBar extends StatelessWidget {
           saveStatus,
           style: TextStyle(
             fontSize: 11,
+            fontFamily: 'monospace',
             color: color,
           ),
         ),

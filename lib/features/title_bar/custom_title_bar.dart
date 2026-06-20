@@ -14,7 +14,7 @@ class CustomTitleBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).extension<MarkFlowTheme>()!;
-    
+
     return Container(
       height: 40,
       decoration: BoxDecoration(
@@ -28,58 +28,6 @@ class CustomTitleBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Logo
-          Padding(
-            padding: const EdgeInsets.only(left: 16),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.edit_note_rounded,
-                  size: 20,
-                  color: theme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'MarkFlow',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: theme.text,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(width: 24),
-          
-          // 当前文件名
-          if (currentFileName != null)
-            Row(
-              children: [
-                Text(
-                  currentFileName!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.secondaryText,
-                  ),
-                ),
-                if (!isSaved)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4),
-                    child: Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: theme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          
           // 中间可拖拽区域
           Expanded(
             child: GestureDetector(
@@ -87,9 +35,53 @@ class CustomTitleBar extends StatelessWidget {
               onPanStart: (_) {
                 // 窗口拖拽
               },
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'MarkFlow',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: theme.tertiaryText,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    if (currentFileName != null) ...[
+                      Text(
+                        ' — ',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.ghostText,
+                        ),
+                      ),
+                      Text(
+                        currentFileName!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.tertiaryText,
+                        ),
+                      ),
+                      if (!isSaved)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4),
+                          child: Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: theme.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ),
-          
+
           // 窗口控制按钮 (Windows 风格)
           _buildWindowControls(theme),
         ],
@@ -153,7 +145,7 @@ class _WindowButtonState extends State<_WindowButton> {
           height: 40,
           color: _isHovered
               ? (widget.isClose
-                  ? const Color(0xFFE81123)
+                  ? const Color(0xFFC45C4A)
                   : widget.theme.hover)
               : Colors.transparent,
           child: Icon(
@@ -161,7 +153,7 @@ class _WindowButtonState extends State<_WindowButton> {
             size: 16,
             color: _isHovered && widget.isClose
                 ? Colors.white
-                : widget.theme.secondaryText,
+                : widget.theme.tertiaryText,
           ),
         ),
       ),
