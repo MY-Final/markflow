@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:markflow/core/theme/theme.dart';
 import 'package:markflow/core/utils/file_utils.dart';
@@ -73,6 +74,12 @@ class _FileExplorerState extends State<FileExplorer> {
     });
   }
 
+  Future<void> _refreshTree() async {
+    if (widget.rootPath != null) {
+      await _loadDirectory(widget.rootPath!);
+    }
+  }
+
   Future<FileTreeNode> _buildTreeNode(Directory directory) async {
     final List<FileTreeNode> children = [];
 
@@ -125,6 +132,238 @@ class _FileExplorerState extends State<FileExplorer> {
     }
   }
 
+  // ==================== 右键菜单操作 ====================
+
+  void _showContextMenu(BuildContext anchorContext, FileTreeNode node, Offset position) {
+    final theme = Theme.of(context).extension<MarkFlowTheme>()!;
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        position & const Size(40, 40),
+        Offset.zero & overlay.size,
+      ),
+      items: node.isDirectory
+          ? _buildFolderMenuItems(theme)
+          : _buildFileMenuItems(theme),
+    ).then((value) {
+      if (value != null) _handleMenuAction(value, node);
+    });
+  }
+
+  List<PopupMenuEntry<String>> _buildFolderMenuItems(MarkFlowTheme theme) {
+    return [
+      _menuItem('newFile', Icons.note_add_rounded, '新建 Markdown 文件'),
+      _menuItem('newFolder', Icons.create_new_folder_rounded, '新建文件夹'),
+      const PopupMenuDivider(),
+      _menuItem('rename', Icons.edit_rounded, '重命名'),
+      _menuItem('delete', Icons.delete_outline_rounded, '删除', isDestructive: true),
+    ];
+  }
+
+  List<PopupMenuEntry<String>> _buildFileMenuItems(MarkFlowTheme theme) {
+    return [
+      _menuItem('rename', Icons.edit_rounded, '重命名'),
+      const PopupMenuDivider(),
+      _menuItem('copyPath', Icons.content_copy_rounded, '复制路径'),
+      _menuItem('delete', Icons.delete_outline_rounded, '删除', isDestructive: true),
+    ];
+  }
+
+  PopupMenuItem<String> _menuItem(String value, IconData icon, String label, {bool isDestructive = false}) {
+    final theme = Theme.of(context).extension<MarkFlowTheme>()!;
+    final color = isDestructive ? Colors.red.shade600 : theme.secondaryText;
+    return PopupMenuItem<String>(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 10),
+          Text(label, style: TextStyle(fontSize: 13, color: color)),
+        ],
+      ),
+    );
+  }
+
+  void _handleMenuAction(String action, FileTreeNode node) {
+    switch (action) {
+      case 'newFile':
+        _createNewFile(node.path);
+        break;
+      case 'newFolder':
+        _createNewFolder(node.path);
+        break;
+      case 'rename':
+        _renameItem(node);
+        break;
+      case 'delete':
+        _deleteItem(node);
+        break;
+      case 'copyPath':
+        Clipboard.setData(ClipboardData(text: node.path));
+        _showSnackBar('已复制路径');
+        break;
+    }
+  }
+
+  Future<void> _createNewFile(String parentDir) async {
+    final name = await _showInputDialog(
+      title: '新建 Markdown 文件',
+      label: '文件名',
+      initialValue: 'untitled.md',
+      validator: (v) => v.trim().isEmpty ? '文件名不能为空' : null,
+    );
+    if (name == null) return;
+
+    final path = '$parentDir${Platform.pathSeparator}$name';
+    try {
+      final file = File(path);
+      if (await file.exists()) {
+        _showSnackBar('文件已存在');
+        return;
+      }
+      await file.writeAsString('');
+      await _refreshTree();
+      widget.onFileSelected?.call(path);
+    } catch (e) {
+      _showSnackBar('创建失败: $e');
+    }
+  }
+
+  Future<void> _createNewFolder(String parentDir) async {
+    final name = await _showInputDialog(
+      title: '新建文件夹',
+      label: '文件夹名',
+      initialValue: 'new_folder',
+      validator: (v) => v.trim().isEmpty ? '文件夹名不能为空' : null,
+    );
+    if (name == null) return;
+
+    final path = '$parentDir${Platform.pathSeparator}$name';
+    try {
+      final dir = Directory(path);
+      if (await dir.exists()) {
+        _showSnackBar('文件夹已存在');
+        return;
+      }
+      await dir.create();
+      await _refreshTree();
+    } catch (e) {
+      _showSnackBar('创建失败: $e');
+    }
+  }
+
+  Future<void> _renameItem(FileTreeNode node) async {
+    final name = await _showInputDialog(
+      title: '重命名',
+      label: '新名称',
+      initialValue: node.name,
+      validator: (v) => v.trim().isEmpty ? '名称不能为空' : null,
+    );
+    if (name == null || name == node.name) return;
+
+    final parentDir = FileUtils.getDirectoryPath(node.path);
+    final newPath = '$parentDir${Platform.pathSeparator}$name';
+    try {
+      if (node.isDirectory) {
+        await Directory(node.path).rename(newPath);
+      } else {
+        await File(node.path).rename(newPath);
+      }
+      await _refreshTree();
+    } catch (e) {
+      _showSnackBar('重命名失败: $e');
+    }
+  }
+
+  Future<void> _deleteItem(FileTreeNode node) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('删除${node.isDirectory ? "文件夹" : "文件"}'),
+        content: Text('确定要删除「${node.name}」吗？\n此操作不可撤销。'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade600),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      if (node.isDirectory) {
+        await Directory(node.path).delete(recursive: true);
+      } else {
+        await File(node.path).delete();
+      }
+      await _refreshTree();
+      _showSnackBar('已删除「${node.name}」');
+    } catch (e) {
+      _showSnackBar('删除失败: $e');
+    }
+  }
+
+  Future<String?> _showInputDialog({
+    required String title,
+    required String label,
+    required String initialValue,
+    String? Function(String)? validator,
+  }) {
+    final controller = TextEditingController(text: initialValue);
+    controller.selection = TextSelection(baseOffset: 0, extentOffset: initialValue.length);
+    final formKey = GlobalKey<FormState>();
+
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: controller,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: label,
+              border: const OutlineInputBorder(),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            validator: validator != null ? (v) => validator(v ?? '') : null,
+            onFieldSubmitted: (_) {
+              if (formKey.currentState?.validate() == true) {
+                Navigator.pop(ctx, controller.text.trim());
+              }
+            },
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() == true) {
+                Navigator.pop(ctx, controller.text.trim());
+              }
+            },
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+    );
+  }
+
+  // ==================== UI ====================
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).extension<MarkFlowTheme>()!;
@@ -134,10 +373,7 @@ class _FileExplorerState extends State<FileExplorer> {
       decoration: BoxDecoration(
         color: theme.explorerBackground,
         border: Border(
-          right: BorderSide(
-            color: theme.border,
-            width: 1,
-          ),
+          right: BorderSide(color: theme.border, width: 1),
         ),
       ),
       child: Column(
@@ -161,11 +397,7 @@ class _FileExplorerState extends State<FileExplorer> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Icon(
-            Icons.folder_rounded,
-            size: 16,
-            color: theme.tertiaryText,
-          ),
+          Icon(Icons.folder_rounded, size: 16, color: theme.tertiaryText),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -192,10 +424,7 @@ class _FileExplorerState extends State<FileExplorer> {
 
   Widget _buildLoadingState(MarkFlowTheme theme) {
     return Center(
-      child: CircularProgressIndicator(
-        strokeWidth: 2,
-        color: theme.primary,
-      ),
+      child: CircularProgressIndicator(strokeWidth: 2, color: theme.primary),
     );
   }
 
@@ -204,30 +433,14 @@ class _FileExplorerState extends State<FileExplorer> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.folder_open_rounded,
-            size: 48,
-            color: theme.ghostText,
-          ),
+          Icon(Icons.folder_open_rounded, size: 48, color: theme.ghostText),
           const SizedBox(height: 16),
-          Text(
-            'No folder opened',
-            style: TextStyle(
-              fontSize: 13,
-              color: theme.tertiaryText,
-            ),
-          ),
+          Text('No folder opened', style: TextStyle(fontSize: 13, color: theme.tertiaryText)),
           const SizedBox(height: 16),
           TextButton.icon(
             onPressed: _openFolder,
             icon: Icon(Icons.folder_open_rounded, size: 16, color: theme.primary),
-            label: Text(
-              'Open Folder',
-              style: TextStyle(
-                fontSize: 12,
-                color: theme.primary,
-              ),
-            ),
+            label: Text('Open Folder', style: TextStyle(fontSize: 12, color: theme.primary)),
           ),
         ],
       ),
@@ -254,11 +467,8 @@ class _FileExplorerState extends State<FileExplorer> {
           isDirectory: true,
           isExpanded: node.isExpanded,
           depth: depth,
-          onTap: () {
-            setState(() {
-              node.isExpanded = !node.isExpanded;
-            });
-          },
+          onTap: () => setState(() => node.isExpanded = !node.isExpanded),
+          onSecondaryTap: (pos) => _showContextMenu(context, node, pos),
           theme: theme,
         ),
         if (node.isExpanded)
@@ -280,6 +490,7 @@ class _FileExplorerState extends State<FileExplorer> {
       isSelected: isSelected,
       depth: depth,
       onTap: () => widget.onFileSelected?.call(node.path),
+      onSecondaryTap: (pos) => _showContextMenu(context, node, pos),
       theme: theme,
     );
   }
@@ -360,20 +571,13 @@ class _HeaderButtonState extends State<_HeaderButton> {
             color: _isHovered ? widget.theme.hover : Colors.transparent,
             borderRadius: BorderRadius.circular(4),
           ),
-          child: Icon(
-            widget.icon,
-            size: 16,
-            color: widget.theme.tertiaryText,
-          ),
+          child: Icon(widget.icon, size: 16, color: widget.theme.tertiaryText),
         ),
       ),
     );
 
     if (widget.tooltip != null) {
-      return Tooltip(
-        message: widget.tooltip,
-        child: button,
-      );
+      return Tooltip(message: widget.tooltip, child: button);
     }
     return button;
   }
@@ -388,6 +592,7 @@ class _FileTreeItem extends StatefulWidget {
   final bool isSelected;
   final int depth;
   final VoidCallback? onTap;
+  final void Function(Offset position)? onSecondaryTap;
   final MarkFlowTheme theme;
 
   const _FileTreeItem({
@@ -399,6 +604,7 @@ class _FileTreeItem extends StatefulWidget {
     this.isSelected = false,
     required this.depth,
     this.onTap,
+    this.onSecondaryTap,
     required this.theme,
   });
 
@@ -418,12 +624,14 @@ class _FileTreeItemState extends State<_FileTreeItem> {
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
         onTap: widget.onTap,
+        onSecondaryTapDown: (details) {
+          widget.onSecondaryTap?.call(details.globalPosition);
+        },
         child: Container(
           height: 32,
           margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
           child: Row(
             children: [
-              // 选中态竖线指示器
               AnimatedContainer(
                 duration: const Duration(milliseconds: 600),
                 curve: Curves.easeOutCubic,
@@ -435,7 +643,6 @@ class _FileTreeItemState extends State<_FileTreeItem> {
                 ),
               ),
               const SizedBox(width: 4),
-              // 内容区域
               Expanded(
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 600),
@@ -445,9 +652,7 @@ class _FileTreeItemState extends State<_FileTreeItem> {
                     right: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: isActive
-                        ? widget.theme.selected
-                        : Colors.transparent,
+                    color: isActive ? widget.theme.selected : Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   height: 32,
@@ -469,9 +674,7 @@ class _FileTreeItemState extends State<_FileTreeItem> {
                             color: widget.isSelected
                                 ? widget.theme.text
                                 : widget.theme.secondaryText,
-                            fontWeight: widget.isSelected
-                                ? FontWeight.w500
-                                : FontWeight.normal,
+                            fontWeight: widget.isSelected ? FontWeight.w500 : FontWeight.normal,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
