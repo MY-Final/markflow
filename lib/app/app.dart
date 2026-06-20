@@ -5,7 +5,7 @@ import 'package:markflow/core/registry/command_registry.dart';
 import 'package:markflow/core/registry/shortcut_registry.dart';
 import 'package:markflow/core/utils/sync_scroll_controller.dart';
 import 'package:markflow/features/title_bar/custom_title_bar.dart';
-import 'package:markflow/features/file_explorer/modern_file_explorer.dart';
+import 'package:markflow/features/file_explorer/file_explorer.dart';
 import 'package:markflow/features/editor/widgets/modern_editor.dart';
 import 'package:markflow/features/preview/modern_preview.dart';
 import 'package:markflow/features/status_bar/status_bar.dart';
@@ -36,6 +36,7 @@ class MarkFlowHomePage extends StatefulWidget {
 
 class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
   String? _currentFilePath;
+  String? _rootPath;
   String _editorContent = '';
   String _saveStatus = 'Saved';
   int _line = 1;
@@ -63,7 +64,6 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
   void _setupCommands() {
     final commandRegistry = CommandRegistry();
 
-    // Override commands with actual implementations
     commandRegistry.registerCommand(Command(
       id: 'editor.save',
       title: 'Save',
@@ -132,12 +132,11 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
                 children: [
                   // 左侧文件树
                   if (_isSidebarVisible)
-                    ModernFileExplorer(
-                      rootPath: _currentFilePath != null
-                          ? _getDirectoryPath(_currentFilePath!)
-                          : null,
+                    FileExplorer(
+                      rootPath: _rootPath,
                       selectedFilePath: _currentFilePath,
                       onFileSelected: _handleFileSelected,
+                      onFolderOpened: _handleFolderOpened,
                     ),
 
                   // 中间编辑区
@@ -185,7 +184,6 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
       return KeyEventResult.ignored;
     }
 
-    // Build key combo string
     final parts = <String>[];
     if (HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed) {
       parts.add('ctrl');
@@ -209,10 +207,10 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
     return KeyEventResult.ignored;
   }
 
-  String _getDirectoryPath(String filePath) {
-    final parts = filePath.split(RegExp(r'[/\\]'));
-    parts.removeLast();
-    return parts.join(RegExp(r'[/\\]').pattern);
+  void _handleFolderOpened(String path) {
+    setState(() {
+      _rootPath = path;
+    });
   }
 
   void _handleFileSelected(String path) {
