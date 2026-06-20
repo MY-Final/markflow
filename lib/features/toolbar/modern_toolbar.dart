@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:markflow/app/app.dart';
 import 'package:markflow/core/theme/theme.dart';
 import 'package:markflow/core/utils/file_utils.dart';
 import 'package:markflow/shared/widgets/sliding_button_group.dart';
 
 class ModernToolbar extends StatelessWidget {
   final void Function(String commandId)? onCommand;
-  final bool isPreviewMode;
+  final ViewMode viewMode;
   final FileCategory fileCategory;
 
   const ModernToolbar({
     super.key,
     this.onCommand,
-    this.isPreviewMode = false,
+    this.viewMode = ViewMode.split,
     this.fileCategory = FileCategory.markdown,
   });
 
@@ -53,9 +54,9 @@ class ModernToolbar extends StatelessWidget {
                 icon: Icons.preview_rounded,
               ),
             ],
-            selectedValue: isPreviewMode ? 'preview' : 'edit',
+            selectedValue: viewMode.name,
             onChanged: (value) {
-              onCommand?.call('view.togglePreview');
+              onCommand?.call('view.${value}Mode');
             },
           ),
         ],

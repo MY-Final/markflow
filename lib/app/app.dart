@@ -16,6 +16,18 @@ import 'package:markflow/features/preview/modern_preview.dart';
 import 'package:markflow/features/status_bar/status_bar.dart';
 import 'package:markflow/features/command_palette/command_palette.dart';
 
+/// 视图模式
+enum ViewMode {
+  /// 只显示编辑器
+  edit,
+
+  /// 编辑器 + 预览并排
+  split,
+
+  /// 只显示预览
+  preview,
+}
+
 class MarkFlowApp extends StatelessWidget {
   const MarkFlowApp({super.key});
 
@@ -46,7 +58,7 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
   String _saveStatus = '已保存';
   int _line = 1;
   int _column = 1;
-  bool _isPreviewMode = false;
+  ViewMode _viewMode = ViewMode.split;
   bool _isSidebarVisible = true;
   bool _isDragging = false;
 
@@ -259,13 +271,33 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
       },
     ));
     cr.registerCommand(Command(
-      id: 'view.togglePreview',
-      title: '切换预览',
-      description: '显示或隐藏预览面板',
+      id: 'view.editMode',
+      title: '编辑模式',
+      description: '仅显示编辑器',
+      category: '视图',
+      icon: Icons.edit_rounded,
+      handler: (args) async {
+        setState(() => _viewMode = ViewMode.edit);
+      },
+    ));
+    cr.registerCommand(Command(
+      id: 'view.splitMode',
+      title: '分屏模式',
+      description: '编辑器与预览并排显示',
+      category: '视图',
+      icon: Icons.vertical_split_rounded,
+      handler: (args) async {
+        setState(() => _viewMode = ViewMode.split);
+      },
+    ));
+    cr.registerCommand(Command(
+      id: 'view.previewMode',
+      title: '预览模式',
+      description: '仅显示预览',
       category: '视图',
       icon: Icons.preview_rounded,
       handler: (args) async {
-        setState(() => _isPreviewMode = !_isPreviewMode);
+        setState(() => _viewMode = ViewMode.preview);
       },
     ));
 
@@ -381,7 +413,7 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
                   ),
                   ModernToolbar(
                     onCommand: (id) => CommandRegistry().executeCommand(id),
-                    isPreviewMode: _isPreviewMode,
+                    viewMode: _viewMode,
                     fileCategory: _fileCategory,
                   ),
                   Expanded(
@@ -394,34 +426,28 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
                             onFileSelected: _handleFileSelected,
                             onFolderOpened: _handleFolderOpened,
                           ),
-                        Expanded(
-                          flex: 3,
-                          child: _isPreviewMode
-                              ? ModernPreviewPanel(
-                                  content: _editorContent,
-                                  filePath: _currentFilePath,
-                                  fileCategory: _fileCategory,
-                                  isTruncated: _isFileTruncated,
-                                  totalLines: _totalLines,
-                                  scrollController: _syncController.rightController,
-                                )
-                              : ModernMarkdownEditor(
-                                  key: _editorKey,
-                                  filePath: _currentFilePath ?? '',
-                                  initialContent: _editorContent,
-                                  onChanged: _handleContentChanged,
-                                  onCursorChanged: _handleCursorChanged,
-                                  scrollController: _syncController.leftController,
-                                  fileCategory: _fileCategory,
-                                  isReadOnly: _fileCategory != FileCategory.markdown,
-                                  isTruncated: _isFileTruncated,
-                                  totalLines: _totalLines,
-                                  onLoadFullFile: _handleLoadFullFile,
-                                ),
-                        ),
-                        if (!_isPreviewMode)
+                        // 编辑器（Edit 和 Split 模式显示）
+                        if (_viewMode != ViewMode.preview)
                           Expanded(
-                            flex: 2,
+                            flex: _viewMode == ViewMode.split ? 3 : 1,
+                            child: ModernMarkdownEditor(
+                              key: _editorKey,
+                              filePath: _currentFilePath ?? '',
+                              initialContent: _editorContent,
+                              onChanged: _handleContentChanged,
+                              onCursorChanged: _handleCursorChanged,
+                              scrollController: _syncController.leftController,
+                              fileCategory: _fileCategory,
+                              isReadOnly: _fileCategory != FileCategory.markdown,
+                              isTruncated: _isFileTruncated,
+                              totalLines: _totalLines,
+                              onLoadFullFile: _handleLoadFullFile,
+                            ),
+                          ),
+                        // 预览面板（Split 和 Preview 模式显示）
+                        if (_viewMode != ViewMode.edit)
+                          Expanded(
+                            flex: _viewMode == ViewMode.split ? 2 : 1,
                             child: ModernPreviewPanel(
                               content: _editorContent,
                               filePath: _currentFilePath,
