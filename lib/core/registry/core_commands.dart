@@ -312,6 +312,14 @@ void registerCoreCommands() {
 
   // Register Shortcuts
   shortcutRegistry.registerShortcut(
+    'ctrl+n',
+    'file.new',
+  );
+  shortcutRegistry.registerShortcut(
+    'ctrl+o',
+    'file.open',
+  );
+  shortcutRegistry.registerShortcut(
     'ctrl+s',
     'editor.save',
   );

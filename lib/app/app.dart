@@ -79,6 +79,28 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
   void _setupCommands() {
     final cr = CommandRegistry();
 
+    // ---- 新建文件 ----
+    cr.registerCommand(Command(
+      id: 'file.new',
+      title: '新建文件',
+      description: '创建新的 Markdown 文件',
+      category: '文件',
+      icon: Icons.note_add_rounded,
+      shortcut: 'Ctrl+N',
+      handler: (args) async => _handleNewFile(),
+    ));
+
+    // ---- 打开文件 ----
+    cr.registerCommand(Command(
+      id: 'file.open',
+      title: '打开文件',
+      description: '打开已有的 Markdown 文件',
+      category: '文件',
+      icon: Icons.folder_open_rounded,
+      shortcut: 'Ctrl+O',
+      handler: (args) async => _handleOpenFile(),
+    ));
+
     // ---- 保存 ----
     cr.registerCommand(Command(
       id: 'editor.save',
@@ -258,6 +280,34 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
         if (mounted) CommandPalette.show(context);
       },
     ));
+  }
+
+  // ==================== 文件操作 ====================
+
+  void _handleNewFile() {
+    setState(() {
+      _currentFilePath = null;
+      _editorContent = '';
+      _fileCategory = FileCategory.markdown;
+      _isFileTruncated = false;
+      _totalLines = 0;
+      _saveStatus = '未保存';
+      _line = 1;
+      _column = 1;
+    });
+  }
+
+  Future<void> _handleOpenFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      dialogTitle: '打开 Markdown 文件',
+      type: FileType.custom,
+      allowedExtensions: ['md', 'markdown', 'mdown', 'txt'],
+    );
+    if (result == null || result.files.isEmpty) return;
+    final path = result.files.first.path;
+    if (path != null) {
+      _handleFileSelected(path);
+    }
   }
 
   // ==================== 保存 ====================
