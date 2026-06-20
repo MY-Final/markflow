@@ -24,12 +24,14 @@ class ModernMarkdownEditor extends StatefulWidget {
 class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
   late TextEditingController _controller;
   late FocusNode _focusNode;
+  final SettingsService _settingsService = SettingsService();
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialContent);
     _focusNode = FocusNode();
+    _settingsService.addListener(_onSettingsChanged);
   }
 
   @override
@@ -42,15 +44,21 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
 
   @override
   void dispose() {
+    _settingsService.removeListener(_onSettingsChanged);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
   }
 
+  void _onSettingsChanged() {
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).extension<MarkFlowTheme>()!;
-    final settings = SettingsService().settings;
+    final settings = _settingsService.settings;
+    final lines = _controller.text.split('\n');
 
     return Container(
       color: theme.background,
@@ -76,39 +84,82 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: ScrollConfiguration(
-              behavior: ScrollConfiguration.of(context).copyWith(scrollbars: true),
-              child: Scrollbar(
-                controller: widget.scrollController,
-                child: SingleChildScrollView(
-                  controller: widget.scrollController,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 48,
-                    vertical: 40,
-                  ),
-                  child: TextField(
-                    controller: _controller,
-                    focusNode: _focusNode,
-                    maxLines: null,
-                    style: GoogleFonts.inter(
-                      fontSize: settings.editorFontSize,
-                      height: settings.editorLineHeight,
-                      color: theme.text,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 行号区域
+                if (settings.editorShowLineNumbers)
+                  Container(
+                    width: 50,
+                    padding: const EdgeInsets.only(
+                      top: 40,
+                      right: 12,
+                      bottom: 40,
                     ),
-                    decoration: InputDecoration(
-                      hintText: '开始输入...',
-                      hintStyle: GoogleFonts.inter(
-                        fontSize: settings.editorFontSize,
-                        height: settings.editorLineHeight,
-                        color: theme.ghostText,
+                    decoration: BoxDecoration(
+                      border: Border(
+                        right: BorderSide(
+                          color: theme.borderLight,
+                          width: 1,
+                        ),
                       ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
                     ),
-                    onChanged: widget.onChanged,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: List.generate(
+                        lines.length,
+                        (index) => Text(
+                          '${index + 1}',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: settings.editorFontSize * 0.85,
+                            height: settings.editorLineHeight,
+                            color: theme.ghostText,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                // 编辑器区域
+                Expanded(
+                  child: ScrollConfiguration(
+                    behavior: ScrollConfiguration.of(context).copyWith(scrollbars: true),
+                    child: Scrollbar(
+                      controller: widget.scrollController,
+                      child: SingleChildScrollView(
+                        controller: widget.scrollController,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: settings.editorShowLineNumbers ? 16 : 48,
+                          vertical: 40,
+                        ),
+                        child: TextField(
+                          controller: _controller,
+                          focusNode: _focusNode,
+                          maxLines: null,
+                          style: GoogleFonts.inter(
+                            fontSize: settings.editorFontSize,
+                            height: settings.editorLineHeight,
+                            color: theme.text,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: '开始输入...',
+                            hintStyle: GoogleFonts.inter(
+                              fontSize: settings.editorFontSize,
+                              height: settings.editorLineHeight,
+                              color: theme.ghostText,
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          onChanged: (text) {
+                            setState(() {});
+                            widget.onChanged?.call(text);
+                          },
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
         ),

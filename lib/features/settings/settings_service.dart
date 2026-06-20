@@ -90,7 +90,7 @@ class SettingsModel {
   static const SettingsModel defaultSettings = SettingsModel();
 }
 
-class SettingsService {
+class SettingsService extends ChangeNotifier {
   static final SettingsService _instance = SettingsService._();
   factory SettingsService() => _instance;
   SettingsService._();
@@ -140,51 +140,61 @@ class SettingsService {
   Future<void> updateSettings(SettingsModel newSettings) async {
     _settings = newSettings;
     await _saveSettings();
+    notifyListeners();
   }
 
   Future<void> updateEditorFontSize(double value) async {
     _settings = _settings.copyWith(editorFontSize: value);
     await _saveSettings();
+    notifyListeners();
   }
 
   Future<void> updateEditorLineHeight(double value) async {
     _settings = _settings.copyWith(editorLineHeight: value);
     await _saveSettings();
+    notifyListeners();
   }
 
   Future<void> updateEditorWordWrap(bool value) async {
     _settings = _settings.copyWith(editorWordWrap: value);
     await _saveSettings();
+    notifyListeners();
   }
 
   Future<void> updateEditorShowLineNumbers(bool value) async {
     _settings = _settings.copyWith(editorShowLineNumbers: value);
     await _saveSettings();
+    notifyListeners();
   }
 
   Future<void> updatePreviewFontSize(double value) async {
     _settings = _settings.copyWith(previewFontSize: value);
     await _saveSettings();
+    notifyListeners();
   }
 
   Future<void> updatePreviewSyncScroll(bool value) async {
     _settings = _settings.copyWith(previewSyncScroll: value);
     await _saveSettings();
+    notifyListeners();
   }
 
   Future<void> updateDefaultExportFormat(String value) async {
     _settings = _settings.copyWith(defaultExportFormat: value);
     await _saveSettings();
+    notifyListeners();
   }
 
   Future<void> updateExportIncludeToc(bool value) async {
     _settings = _settings.copyWith(exportIncludeToc: value);
     await _saveSettings();
+    notifyListeners();
   }
 
   Future<void> resetToDefault() async {
     _settings = SettingsModel.defaultSettings;
     await _saveSettings();
+    notifyListeners();
   }
 
   String getSettingsPath() {
