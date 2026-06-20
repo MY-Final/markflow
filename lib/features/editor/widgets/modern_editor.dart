@@ -3,12 +3,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:markflow/core/theme/theme.dart';
 
 class ModernMarkdownEditor extends StatefulWidget {
+  final String filePath;
   final String initialContent;
   final Function(String)? onChanged;
   final ScrollController? scrollController;
 
   const ModernMarkdownEditor({
     super.key,
+    this.filePath = '',
     this.initialContent = '',
     this.onChanged,
     this.scrollController,
@@ -32,7 +34,8 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
   @override
   void didUpdateWidget(ModernMarkdownEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.initialContent != oldWidget.initialContent) {
+    // 只在切换文件时更新内容，而不是每次输入时
+    if (widget.filePath != oldWidget.filePath && widget.filePath.isNotEmpty) {
       _controller.text = widget.initialContent;
     }
   }

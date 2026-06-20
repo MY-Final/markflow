@@ -149,6 +149,7 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
                             scrollController: _syncController.rightController,
                           )
                         : ModernMarkdownEditor(
+                            filePath: _currentFilePath ?? '',
                             initialContent: _editorContent,
                             onChanged: _handleContentChanged,
                             scrollController: _syncController.leftController,
