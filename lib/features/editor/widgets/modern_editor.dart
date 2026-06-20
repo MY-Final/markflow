@@ -25,7 +25,7 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
   late TextEditingController _controller;
   late FocusNode _focusNode;
   final SettingsService _settingsService = SettingsService();
-  final ScrollController _lineNumberController = ScrollController();
+  int _lineCount = 1;
 
   @override
   void initState() {
@@ -33,6 +33,7 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
     _controller = TextEditingController(text: widget.initialContent);
     _focusNode = FocusNode();
     _settingsService.addListener(_onSettingsChanged);
+    _updateLineCount();
   }
 
   @override
@@ -40,6 +41,7 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
     super.didUpdateWidget(oldWidget);
     if (widget.filePath != oldWidget.filePath && widget.filePath.isNotEmpty) {
       _controller.text = widget.initialContent;
+      _updateLineCount();
     }
   }
 
@@ -48,7 +50,6 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
     _settingsService.removeListener(_onSettingsChanged);
     _controller.dispose();
     _focusNode.dispose();
-    _lineNumberController.dispose();
     super.dispose();
   }
 
@@ -56,11 +57,14 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
     setState(() {});
   }
 
+  void _updateLineCount() {
+    _lineCount = '\n'.allMatches(_controller.text).length + 1;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).extension<MarkFlowTheme>()!;
     final settings = _settingsService.settings;
-    final lines = _controller.text.split('\n');
 
     return Container(
       color: theme.background,
@@ -90,87 +94,66 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 行号区域
-                if (settings.editorShowLineNumbers)
-                  SizedBox(
+                if (settings.editorShowLineNumbers) ...[
+                  Container(
                     width: 50,
-                    child: ScrollConfiguration(
-                      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-                      child: SingleChildScrollView(
-                        controller: _lineNumberController,
-                        physics: const NeverScrollableScrollPhysics(),
-                        padding: const EdgeInsets.only(
-                          top: 40,
-                          right: 12,
-                          bottom: 40,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: List.generate(
-                            lines.length,
-                            (index) => Text(
-                              '${index + 1}',
-                              style: GoogleFonts.jetBrainsMono(
-                                fontSize: settings.editorFontSize * 0.85,
-                                height: settings.editorLineHeight,
-                                color: theme.ghostText,
-                              ),
-                            ),
+                    color: theme.surface,
+                    padding: const EdgeInsets.only(top: 40, right: 8, bottom: 40, left: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: List.generate(
+                        _lineCount,
+                        (index) => Text(
+                          '${index + 1}',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: settings.editorFontSize * 0.85,
+                            height: settings.editorLineHeight,
+                            color: theme.ghostText,
                           ),
                         ),
                       ),
                     ),
                   ),
-                // 分隔线
-                if (settings.editorShowLineNumbers)
                   Container(
                     width: 1,
                     color: theme.borderLight,
                   ),
+                ],
                 // 编辑器区域
                 Expanded(
-                  child: NotificationListener<ScrollNotification>(
-                    onNotification: (notification) {
-                      if (notification is ScrollUpdateNotification &&
-                          notification.dragDetails != null) {
-                        _lineNumberController.jumpTo(
-                          notification.metrics.pixels.clamp(
-                            0.0,
-                            _lineNumberController.hasClients
-                                ? _lineNumberController.position.maxScrollExtent
-                                : 0.0,
-                          ),
-                        );
-                      }
-                      return false;
-                    },
-                    child: TextField(
-                      controller: _controller,
-                      focusNode: _focusNode,
-                      maxLines: null,
-                      expands: true,
-                      textAlignVertical: TextAlignVertical.top,
-                      style: GoogleFonts.inter(
-                        fontSize: settings.editorFontSize,
-                        height: settings.editorLineHeight,
-                        color: theme.text,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: '开始输入...',
-                        hintStyle: GoogleFonts.inter(
+                  child: SingleChildScrollView(
+                    controller: widget.scrollController,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: settings.editorShowLineNumbers ? 16 : 48,
+                      vertical: 40,
+                    ),
+                    child: IntrinsicHeight(
+                      child: TextField(
+                        controller: _controller,
+                        focusNode: _focusNode,
+                        maxLines: null,
+                        style: GoogleFonts.inter(
                           fontSize: settings.editorFontSize,
                           height: settings.editorLineHeight,
-                          color: theme.ghostText,
+                          color: theme.text,
                         ),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: settings.editorShowLineNumbers ? 16 : 48,
-                          vertical: 40,
+                        decoration: InputDecoration(
+                          hintText: '开始输入...',
+                          hintStyle: GoogleFonts.inter(
+                            fontSize: settings.editorFontSize,
+                            height: settings.editorLineHeight,
+                            color: theme.ghostText,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                          isDense: true,
                         ),
+                        onChanged: (text) {
+                          _updateLineCount();
+                          setState(() {});
+                          widget.onChanged?.call(text);
+                        },
                       ),
-                      onChanged: (text) {
-                        setState(() {});
-                        widget.onChanged?.call(text);
-                      },
                     ),
                   ),
                 ),
