@@ -26,6 +26,7 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
   late FocusNode _focusNode;
   final SettingsService _settingsService = SettingsService();
   int _lineCount = 1;
+  final ScrollController _lineNumberScrollController = ScrollController();
 
   @override
   void initState() {
@@ -34,6 +35,7 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
     _focusNode = FocusNode();
     _settingsService.addListener(_onSettingsChanged);
     _updateLineCount();
+    widget.scrollController?.addListener(_syncLineNumbers);
   }
 
   @override
@@ -43,10 +45,16 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
       _controller.text = widget.initialContent;
       _updateLineCount();
     }
+    if (widget.scrollController != oldWidget.scrollController) {
+      oldWidget.scrollController?.removeListener(_syncLineNumbers);
+      widget.scrollController?.addListener(_syncLineNumbers);
+    }
   }
 
   @override
   void dispose() {
+    widget.scrollController?.removeListener(_syncLineNumbers);
+    _lineNumberScrollController.dispose();
     _settingsService.removeListener(_onSettingsChanged);
     _controller.dispose();
     _focusNode.dispose();
@@ -59,6 +67,13 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
 
   void _updateLineCount() {
     _lineCount = '\n'.allMatches(_controller.text).length + 1;
+  }
+
+  void _syncLineNumbers() {
+    if (_lineNumberScrollController.hasClients &&
+        widget.scrollController?.hasClients == true) {
+      _lineNumberScrollController.jumpTo(widget.scrollController!.offset);
+    }
   }
 
   @override
@@ -99,16 +114,19 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
                     width: 50,
                     color: theme.surface,
                     padding: const EdgeInsets.only(top: 40, right: 8, bottom: 40, left: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: List.generate(
-                        _lineCount,
-                        (index) => Text(
-                          '${index + 1}',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: settings.editorFontSize * 0.85,
-                            height: settings.editorLineHeight,
-                            color: theme.ghostText,
+                    child: SingleChildScrollView(
+                      controller: _lineNumberScrollController,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: List.generate(
+                          _lineCount,
+                          (index) => Text(
+                            '${index + 1}',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: settings.editorFontSize * 0.85,
+                              height: settings.editorLineHeight,
+                              color: theme.ghostText,
+                            ),
                           ),
                         ),
                       ),
