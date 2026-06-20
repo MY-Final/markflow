@@ -91,11 +91,6 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
                 if (settings.editorShowLineNumbers)
                   Container(
                     width: 50,
-                    padding: const EdgeInsets.only(
-                      top: 40,
-                      right: 12,
-                      bottom: 40,
-                    ),
                     decoration: BoxDecoration(
                       border: Border(
                         right: BorderSide(
@@ -104,16 +99,24 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
                         ),
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: List.generate(
-                        lines.length,
-                        (index) => Text(
-                          '${index + 1}',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: settings.editorFontSize * 0.85,
-                            height: settings.editorLineHeight,
-                            color: theme.ghostText,
+                    child: SingleChildScrollView(
+                      controller: widget.scrollController,
+                      padding: const EdgeInsets.only(
+                        top: 40,
+                        right: 12,
+                        bottom: 40,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: List.generate(
+                          lines.length,
+                          (index) => Text(
+                            '${index + 1}',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: settings.editorFontSize * 0.85,
+                              height: settings.editorLineHeight,
+                              color: theme.ghostText,
+                            ),
                           ),
                         ),
                       ),
