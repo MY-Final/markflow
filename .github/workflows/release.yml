@@ -1,0 +1,119 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: 'stable'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter build windows --release
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $ver = "${{ github.ref_name }}" -replace '^v', ''
+          $src = "build/windows/x64/runner/Release"
+          $dest = "MarkFlow_${ver}_windows_x64.zip"
+          Compress-Archive -Path "$src/*" -DestinationPath $dest
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: MarkFlow_*.zip
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgtk-3-dev
+
+      - run: flutter pub get
+
+      - run: flutter build linux --release
+
+      - name: Package
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          cd build/linux/x64/runner/release
+          tar czf "../../../../MarkFlow_${ver}_linux_x64.tar.gz" *
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: MarkFlow_*.tar.gz
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter build macos --release
+
+      - name: Package
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          cd build/macos/Build/Products/Release
+          zip -r "../../../../MarkFlow_${ver}_macos.zip" MarkFlow.app
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: MarkFlow_*.zip
+
+  release:
+    needs: [build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ github.ref_name }}"
+          title="MarkFlow ${tag}"
+
+          gh release create "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$title" \
+            --generate-notes \
+            artifacts/**/*

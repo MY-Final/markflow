@@ -2,15 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:markflow/core/theme/theme.dart';
+import 'package:markflow/core/utils/file_utils.dart';
+import 'package:markflow/features/settings/settings_service.dart';
 
 class ModernPreviewPanel extends StatefulWidget {
   final String content;
+  final String? filePath;
   final ScrollController? scrollController;
+
+  /// 文件内容分类（由上层传入，避免重复计算）
+  final FileCategory fileCategory;
+
+  /// 内容是否被截断
+  final bool isTruncated;
+
+  /// 文件总行数
+  final int totalLines;
 
   const ModernPreviewPanel({
     super.key,
     this.content = '',
+    this.filePath,
     this.scrollController,
+    this.fileCategory = FileCategory.markdown,
+    this.isTruncated = false,
+    this.totalLines = 0,
   });
 
   @override
@@ -72,6 +88,40 @@ class _ModernPreviewPanelState extends State<ModernPreviewPanel> {
               letterSpacing: 0.5,
             ),
           ),
+          if (widget.isTruncated) ...[
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.orange.shade200, width: 1),
+              ),
+              child: Text(
+                '已截断 · 共 ${widget.totalLines} 行',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.orange.shade800,
+                ),
+              ),
+            ),
+          ],
+          const Spacer(),
+          // 文件类型标签
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: theme.surfaceWarm,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              _categoryDisplayName(widget.fileCategory),
+              style: TextStyle(
+                fontSize: 11,
+                color: theme.ghostText,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -101,75 +151,113 @@ class _ModernPreviewPanelState extends State<ModernPreviewPanel> {
       );
     }
 
-    return ScrollConfiguration(
-      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: true),
-      child: Scrollbar(
-        controller: widget.scrollController,
-        child: Markdown(
-          data: widget.content,
+    // Markdown 文件 → 渲染 Markdown 预览
+    if (widget.fileCategory == FileCategory.markdown) {
+      return ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: true),
+        child: Scrollbar(
           controller: widget.scrollController,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 32,
-            vertical: 24,
+          child: Markdown(
+            data: widget.content,
+            controller: widget.scrollController,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 32,
+              vertical: 24,
+            ),
+            styleSheet: _buildMarkdownStyleSheet(theme),
           ),
-          styleSheet: _buildMarkdownStyleSheet(theme),
+        ),
+      );
+    }
+
+    // 非 Markdown 文件 → 纯文本展示
+    return SingleChildScrollView(
+      controller: widget.scrollController,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 32,
+        vertical: 24,
+      ),
+      child: SelectableText(
+        widget.content,
+        style: GoogleFonts.jetBrainsMono(
+          fontSize: 14,
+          color: theme.text,
+          height: 1.6,
         ),
       ),
     );
   }
 
+  String _categoryDisplayName(FileCategory category) {
+    switch (category) {
+      case FileCategory.markdown:
+        return 'Markdown';
+      case FileCategory.data:
+        return '数据文件';
+      case FileCategory.log:
+        return '日志文件';
+      case FileCategory.text:
+        return '文本文件';
+      case FileCategory.binary:
+        return '二进制';
+    }
+  }
+
   MarkdownStyleSheet _buildMarkdownStyleSheet(MarkFlowTheme theme) {
+    final settings = SettingsService().settings;
+    final fontSize = settings.previewFontSize;
+
     return MarkdownStyleSheet(
       // 标题
       h1: GoogleFonts.inter(
-        fontSize: 28,
+        fontSize: fontSize * 1.8,
         fontWeight: FontWeight.w600,
         color: theme.text,
         height: 1.3,
         letterSpacing: -0.5,
       ),
       h2: GoogleFonts.inter(
-        fontSize: 22,
+        fontSize: fontSize * 1.5,
         fontWeight: FontWeight.w600,
         color: theme.text,
         height: 1.3,
         letterSpacing: -0.3,
       ),
       h3: GoogleFonts.inter(
-        fontSize: 18,
+        fontSize: fontSize * 1.2,
         fontWeight: FontWeight.w600,
         color: theme.text,
         height: 1.4,
       ),
       h4: GoogleFonts.inter(
-        fontSize: 16,
+        fontSize: fontSize * 1.1,
         fontWeight: FontWeight.w600,
         color: theme.text,
         height: 1.4,
       ),
 
-      // 正文 - 行高 1.9 非常舒适
+      // 正文 - 使用设置的字体大小
       p: GoogleFonts.inter(
-        fontSize: 15,
+        fontSize: fontSize,
         color: theme.secondaryText,
         height: 1.9,
       ),
 
       // 强调
       strong: GoogleFonts.inter(
-        fontSize: 15,
+        fontSize: fontSize,
         fontWeight: FontWeight.w600,
         color: theme.text,
       ),
       em: GoogleFonts.inter(
-        fontSize: 15,
+        fontSize: fontSize,
         fontStyle: FontStyle.italic,
-        color: theme.primaryLight, // 斜体用品牌色
+        color: theme.primaryLight,
       ),
 
       // 代码
       code: GoogleFonts.jetBrainsMono(
-        fontSize: 13,
+        fontSize: fontSize * 0.87,
         color: theme.primary,
         backgroundColor: theme.surfaceWarm,
       ),
@@ -185,7 +273,7 @@ class _ModernPreviewPanelState extends State<ModernPreviewPanel> {
 
       // 引用
       blockquote: GoogleFonts.inter(
-        fontSize: 15,
+        fontSize: fontSize,
         color: theme.tertiaryText,
         fontStyle: FontStyle.italic,
         height: 1.9,
@@ -202,14 +290,14 @@ class _ModernPreviewPanelState extends State<ModernPreviewPanel> {
 
       // 列表
       listBullet: GoogleFonts.inter(
-        fontSize: 15,
+        fontSize: fontSize,
         color: theme.primary.withValues(alpha: 0.4),
       ),
       listBulletPadding: const EdgeInsets.only(right: 8),
 
       // 链接
       a: GoogleFonts.inter(
-        fontSize: 15,
+        fontSize: fontSize,
         color: theme.primary,
         decoration: TextDecoration.underline,
       ),
@@ -221,12 +309,12 @@ class _ModernPreviewPanelState extends State<ModernPreviewPanel> {
         borderRadius: BorderRadius.circular(8),
       ),
       tableHead: GoogleFonts.inter(
-        fontSize: 14,
+        fontSize: fontSize * 0.93,
         fontWeight: FontWeight.w600,
         color: theme.text,
       ),
       tableBody: GoogleFonts.inter(
-        fontSize: 14,
+        fontSize: fontSize * 0.93,
         color: theme.secondaryText,
       ),
       tableHeadAlign: TextAlign.left,

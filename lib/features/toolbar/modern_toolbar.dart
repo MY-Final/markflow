@@ -1,30 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:markflow/app/app.dart';
 import 'package:markflow/core/theme/theme.dart';
+import 'package:markflow/core/utils/file_utils.dart';
 import 'package:markflow/shared/widgets/sliding_button_group.dart';
 
 class ModernToolbar extends StatelessWidget {
-  final VoidCallback? onBold;
-  final VoidCallback? onItalic;
-  final VoidCallback? onCode;
-  final VoidCallback? onUndo;
-  final VoidCallback? onRedo;
-  final VoidCallback? onTogglePreview;
-  final bool isPreviewMode;
+  final void Function(String commandId)? onCommand;
+  final ViewMode viewMode;
+  final FileCategory fileCategory;
 
   const ModernToolbar({
     super.key,
-    this.onBold,
-    this.onItalic,
-    this.onCode,
-    this.onUndo,
-    this.onRedo,
-    this.onTogglePreview,
-    this.isPreviewMode = false,
+    this.onCommand,
+    this.viewMode = ViewMode.split,
+    this.fileCategory = FileCategory.markdown,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).extension<MarkFlowTheme>()!;
+    final isMarkdown = fileCategory == FileCategory.markdown;
 
     return Container(
       height: 48,
@@ -32,25 +27,15 @@ class ModernToolbar extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.toolbarBackground,
         border: Border(
-          bottom: BorderSide(
-            color: theme.border,
-            width: 1,
-          ),
+          bottom: BorderSide(color: theme.border, width: 1),
         ),
       ),
       child: Row(
         children: [
-          // Logo
           _buildLogo(theme),
-          
           const SizedBox(width: 16),
-          
-          // 左侧格式化按钮组
-          _buildFormatGroup(theme),
-          
+          if (isMarkdown) _buildFormatGroup(theme),
           const Spacer(),
-          
-          // 右侧视图切换
           SlidingButtonGroup<String>(
             options: [
               SlidingButtonOption(
@@ -69,11 +54,9 @@ class ModernToolbar extends StatelessWidget {
                 icon: Icons.preview_rounded,
               ),
             ],
-            selectedValue: isPreviewMode ? 'preview' : 'edit',
+            selectedValue: viewMode.name,
             onChanged: (value) {
-              if (value == 'preview' || value == 'edit') {
-                onTogglePreview?.call();
-              }
+              onCommand?.call('view.${value}Mode');
             },
           ),
         ],
@@ -119,54 +102,61 @@ class ModernToolbar extends StatelessWidget {
           _FormatButton(
             label: 'B',
             style: const TextStyle(fontWeight: FontWeight.bold),
-            tooltip: 'Bold',
-            onTap: onBold,
+            tooltip: '加粗 (Ctrl+B)',
+            onTap: () => onCommand?.call('editor.insertBold'),
             theme: theme,
           ),
           _FormatButton(
             label: 'I',
             style: const TextStyle(fontStyle: FontStyle.italic),
-            tooltip: 'Italic',
-            onTap: onItalic,
+            tooltip: '斜体 (Ctrl+I)',
+            onTap: () => onCommand?.call('editor.insertItalic'),
             theme: theme,
           ),
           _FormatButton(
             label: 'H',
             style: const TextStyle(fontWeight: FontWeight.w600),
-            tooltip: 'Heading',
-            onTap: () {},
+            tooltip: '标题',
+            onTap: () => onCommand?.call('editor.insertHeading'),
             theme: theme,
           ),
           _FormatButton(
             label: '—',
-            tooltip: 'Divider',
-            onTap: () {},
+            tooltip: '分割线',
+            onTap: () => onCommand?.call('editor.insertDivider'),
             theme: theme,
           ),
           _FormatButton(
             label: '•',
-            tooltip: 'List',
-            onTap: () {},
+            tooltip: '无序列表',
+            onTap: () => onCommand?.call('editor.insertUnorderedList'),
             theme: theme,
           ),
           _FormatButton(
             label: '1.',
             style: const TextStyle(fontSize: 11),
-            tooltip: 'Ordered List',
-            onTap: () {},
+            tooltip: '有序列表',
+            onTap: () => onCommand?.call('editor.insertOrderedList'),
             theme: theme,
           ),
           _FormatButton(
             label: '<>',
             style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
-            tooltip: 'Code',
-            onTap: onCode,
+            tooltip: '代码块',
+            onTap: () => onCommand?.call('editor.insertCode'),
             theme: theme,
           ),
           _FormatButton(
             label: '❝',
-            tooltip: 'Quote',
-            onTap: () {},
+            tooltip: '引用',
+            onTap: () => onCommand?.call('editor.insertQuote'),
+            theme: theme,
+          ),
+          _FormatButton(
+            label: '🔗',
+            style: const TextStyle(fontSize: 13),
+            tooltip: '链接',
+            onTap: () => onCommand?.call('editor.insertLink'),
             theme: theme,
           ),
         ],
@@ -211,24 +201,18 @@ class _FormatButtonState extends State<_FormatButton> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: _isHovered
-                  ? widget.theme.primaryMist
-                  : Colors.transparent,
+              color: _isHovered ? widget.theme.primaryMist : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Center(
               child: Text(
                 widget.label,
                 style: widget.style?.copyWith(
-                  color: _isHovered
-                      ? widget.theme.primary
-                      : widget.theme.secondaryText,
+                  color: _isHovered ? widget.theme.primary : widget.theme.secondaryText,
                 ) ?? TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: _isHovered
-                      ? widget.theme.primary
-                      : widget.theme.secondaryText,
+                  color: _isHovered ? widget.theme.primary : widget.theme.secondaryText,
                 ),
               ),
             ),

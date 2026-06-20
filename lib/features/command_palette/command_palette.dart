@@ -144,7 +144,7 @@ class _CommandPaletteState extends State<CommandPalette> {
                 color: theme.text,
               ),
               decoration: InputDecoration(
-                hintText: 'Type a command...',
+                hintText: '输入命令...',
                 hintStyle: GoogleFonts.inter(
                   fontSize: 15,
                   color: theme.secondaryText.withValues(alpha: 0.5),
@@ -216,7 +216,7 @@ class _CommandPaletteState extends State<CommandPalette> {
           ),
           const SizedBox(height: 16),
           Text(
-            'No commands found',
+            '未找到命令',
             style: TextStyle(
               fontSize: 14,
               color: theme.secondaryText,
