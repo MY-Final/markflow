@@ -313,7 +313,18 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
     try {
       final file = File(path);
       if (await file.exists()) {
-        final content = await file.readAsString();
+        final fileSize = await file.length();
+        String content;
+        
+        // 限制最大读取 500KB
+        if (fileSize > 500 * 1024) {
+          final bytes = await file.openRead(0, 500 * 1024).toList();
+          content = String.fromCharCodes(bytes.expand((b) => b));
+          content += '\n\n--- 文件过大，仅显示前 500KB ---';
+        } else {
+          content = await file.readAsString();
+        }
+        
         setState(() {
           _currentFilePath = path;
           _editorContent = content;
