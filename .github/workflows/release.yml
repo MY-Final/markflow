@@ -59,7 +59,14 @@ jobs:
       - name: Package
         run: |
           ver="${GITHUB_REF_NAME#v}"
-          cd build/linux/x64/runner/release
+          # 找到构建产物目录
+          release_dir=$(find build/linux -type d -name "release" 2>/dev/null | head -n 1)
+          if [ -z "$release_dir" ]; then
+            echo "Build output not found. Listing build/linux:"
+            find build/linux -type f 2>/dev/null | head -20
+            exit 1
+          fi
+          cd "$release_dir"
           tar czf "../../../../MarkFlow_${ver}_linux_x64.tar.gz" *
 
       - name: Upload artifact
@@ -85,7 +92,14 @@ jobs:
       - name: Package
         run: |
           ver="${GITHUB_REF_NAME#v}"
-          cd build/macos/Build/Products/Release
+          # 找到构建产物目录
+          release_dir=$(find build/macos -type d -name "Release" -o -type d -name "release" 2>/dev/null | head -n 1)
+          if [ -z "$release_dir" ]; then
+            echo "Build output not found. Listing build/macos:"
+            find build/macos -type f 2>/dev/null | head -20
+            exit 1
+          fi
+          cd "$release_dir"
           zip -r "../../../../MarkFlow_${ver}_macos.zip" MarkFlow.app
 
       - name: Upload artifact
