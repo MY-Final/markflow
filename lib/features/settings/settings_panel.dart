@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:markflow/core/theme/theme.dart';
+import 'package:markflow/features/settings/settings_service.dart';
 
 class SettingsPanel extends StatefulWidget {
   final VoidCallback onClose;
@@ -48,19 +49,9 @@ class SettingsPanel extends StatefulWidget {
 }
 
 class _SettingsPanelState extends State<SettingsPanel> {
-  // Editor settings
-  double _editorFontSize = 15;
-  double _editorLineHeight = 1.9;
-  bool _editorWordWrap = true;
-  bool _editorShowLineNumbers = false;
-
-  // Preview settings
-  double _previewFontSize = 15;
-  bool _previewSyncScroll = true;
-
-  // Export settings
-  String _defaultExportFormat = 'PDF';
-  bool _exportIncludeToc = false;
+  final SettingsService _settingsService = SettingsService();
+  late SettingsModel _settings;
+  bool _isLoading = true;
 
   // Shortcut settings (display only)
   final Map<String, String> _shortcuts = {
@@ -73,8 +64,25 @@ class _SettingsPanelState extends State<SettingsPanel> {
   };
 
   @override
+  void initState() {
+    super.initState();
+    _settings = _settingsService.settings;
+    _isLoading = false;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).extension<MarkFlowTheme>()!;
+
+    if (_isLoading) {
+      return Container(
+        width: 380,
+        color: theme.surface,
+        child: Center(
+          child: CircularProgressIndicator(color: theme.primary),
+        ),
+      );
+    }
 
     return KeyboardListener(
       focusNode: FocusNode(),
@@ -151,32 +159,44 @@ class _SettingsPanelState extends State<SettingsPanel> {
           _buildSection('Editor', Icons.edit_rounded, [
             _buildSliderSetting(
               'Font Size',
-              _editorFontSize,
+              _settings.editorFontSize,
               12,
               24,
-              (value) => setState(() => _editorFontSize = value),
+              (value) {
+                setState(() => _settings = _settings.copyWith(editorFontSize: value));
+                _settingsService.updateEditorFontSize(value);
+              },
               theme,
-              '${_editorFontSize.round()}px',
+              '${_settings.editorFontSize.round()}px',
             ),
             _buildSliderSetting(
               'Line Height',
-              _editorLineHeight,
+              _settings.editorLineHeight,
               1.2,
               2.5,
-              (value) => setState(() => _editorLineHeight = value),
+              (value) {
+                setState(() => _settings = _settings.copyWith(editorLineHeight: value));
+                _settingsService.updateEditorLineHeight(value);
+              },
               theme,
-              _editorLineHeight.toStringAsFixed(1),
+              _settings.editorLineHeight.toStringAsFixed(1),
             ),
             _buildSwitchSetting(
               'Word Wrap',
-              _editorWordWrap,
-              (value) => setState(() => _editorWordWrap = value),
+              _settings.editorWordWrap,
+              (value) {
+                setState(() => _settings = _settings.copyWith(editorWordWrap: value));
+                _settingsService.updateEditorWordWrap(value);
+              },
               theme,
             ),
             _buildSwitchSetting(
               'Show Line Numbers',
-              _editorShowLineNumbers,
-              (value) => setState(() => _editorShowLineNumbers = value),
+              _settings.editorShowLineNumbers,
+              (value) {
+                setState(() => _settings = _settings.copyWith(editorShowLineNumbers: value));
+                _settingsService.updateEditorShowLineNumbers(value);
+              },
               theme,
             ),
           ]),
@@ -184,17 +204,23 @@ class _SettingsPanelState extends State<SettingsPanel> {
           _buildSection('Preview', Icons.preview_rounded, [
             _buildSliderSetting(
               'Font Size',
-              _previewFontSize,
+              _settings.previewFontSize,
               12,
               24,
-              (value) => setState(() => _previewFontSize = value),
+              (value) {
+                setState(() => _settings = _settings.copyWith(previewFontSize: value));
+                _settingsService.updatePreviewFontSize(value);
+              },
               theme,
-              '${_previewFontSize.round()}px',
+              '${_settings.previewFontSize.round()}px',
             ),
             _buildSwitchSetting(
               'Sync Scrolling',
-              _previewSyncScroll,
-              (value) => setState(() => _previewSyncScroll = value),
+              _settings.previewSyncScroll,
+              (value) {
+                setState(() => _settings = _settings.copyWith(previewSyncScroll: value));
+                _settingsService.updatePreviewSyncScroll(value);
+              },
               theme,
             ),
           ]),
@@ -202,15 +228,21 @@ class _SettingsPanelState extends State<SettingsPanel> {
           _buildSection('Export', Icons.file_download_rounded, [
             _buildDropdownSetting(
               'Default Format',
-              _defaultExportFormat,
+              _settings.defaultExportFormat,
               ['PDF', 'HTML', 'Markdown'],
-              (value) => setState(() => _defaultExportFormat = value!),
+              (value) {
+                setState(() => _settings = _settings.copyWith(defaultExportFormat: value!));
+                _settingsService.updateDefaultExportFormat(value!);
+              },
               theme,
             ),
             _buildSwitchSetting(
               'Include Table of Contents',
-              _exportIncludeToc,
-              (value) => setState(() => _exportIncludeToc = value),
+              _settings.exportIncludeToc,
+              (value) {
+                setState(() => _settings = _settings.copyWith(exportIncludeToc: value));
+                _settingsService.updateExportIncludeToc(value);
+              },
               theme,
             ),
           ]),
@@ -224,6 +256,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
             _buildInfoItem('Version', '1.0.0', theme),
             _buildInfoItem('Build', '2026.06.20', theme),
             _buildInfoItem('License', 'MIT', theme),
+            _buildInfoItem('Settings Path', _settingsService.getSettingsPath(), theme),
           ]),
         ],
       ),
@@ -463,8 +496,10 @@ class _SettingsPanelState extends State<SettingsPanel> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
+          SizedBox(
+            width: 100,
             child: Text(
               label,
               style: TextStyle(
@@ -473,11 +508,14 @@ class _SettingsPanelState extends State<SettingsPanel> {
               ),
             ),
           ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 13,
-              color: theme.tertiaryText,
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 12,
+                fontFamily: 'monospace',
+                color: theme.tertiaryText,
+              ),
             ),
           ),
         ],
@@ -559,14 +597,8 @@ class _SettingsPanelState extends State<SettingsPanel> {
 
   void _resetToDefault() {
     setState(() {
-      _editorFontSize = 15;
-      _editorLineHeight = 1.9;
-      _editorWordWrap = true;
-      _editorShowLineNumbers = false;
-      _previewFontSize = 15;
-      _previewSyncScroll = true;
-      _defaultExportFormat = 'PDF';
-      _exportIncludeToc = false;
+      _settings = SettingsModel.defaultSettings;
     });
+    _settingsService.resetToDefault();
   }
 }
