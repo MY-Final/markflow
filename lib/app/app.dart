@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:markflow/core/theme/theme.dart';
@@ -8,6 +9,7 @@ import 'package:markflow/core/registry/shortcut_registry.dart';
 import 'package:markflow/core/utils/file_utils.dart';
 import 'package:markflow/core/utils/sync_scroll_controller.dart';
 import 'package:markflow/features/title_bar/custom_title_bar.dart';
+import 'package:markflow/features/toolbar/modern_toolbar.dart';
 import 'package:markflow/features/file_explorer/file_explorer.dart';
 import 'package:markflow/features/editor/widgets/modern_editor.dart';
 import 'package:markflow/features/preview/modern_preview.dart';
@@ -48,15 +50,15 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
   bool _isSidebarVisible = true;
   bool _isDragging = false;
 
-  // 大文件处理相关状态
   FileCategory _fileCategory = FileCategory.markdown;
   bool _isFileTruncated = false;
   int _totalLines = 0;
-  static const _largeFileThreshold = 1 * 1024 * 1024; // 1MB
+  static const _largeFileThreshold = 1 * 1024 * 1024;
   static const _truncatedMaxLines = 5000;
 
   final FocusNode _focusNode = FocusNode();
   late final SyncScrollController _syncController;
+  final GlobalKey<ModernMarkdownEditorState> _editorKey = GlobalKey<ModernMarkdownEditorState>();
 
   @override
   void initState() {
@@ -72,21 +74,159 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
     super.dispose();
   }
 
-  void _setupCommands() {
-    final commandRegistry = CommandRegistry();
+  // ==================== 命令注册 ====================
 
-    commandRegistry.registerCommand(Command(
+  void _setupCommands() {
+    final cr = CommandRegistry();
+
+    // ---- 保存 ----
+    cr.registerCommand(Command(
       id: 'editor.save',
       title: '保存',
       description: '保存当前文件',
       category: '编辑器',
       icon: Icons.save_rounded,
+      shortcut: 'Ctrl+S',
+      handler: (args) => _handleSave(),
+    ));
+
+    // ---- 撤销/重做（TextField 内建，这里留空壳） ----
+    cr.registerCommand(Command(
+      id: 'editor.undo',
+      title: '撤销',
+      description: '撤销上一步操作',
+      category: '编辑器',
+      icon: Icons.undo_rounded,
+      shortcut: 'Ctrl+Z',
+      handler: (args) async {},
+    ));
+    cr.registerCommand(Command(
+      id: 'editor.redo',
+      title: '重做',
+      description: '重做上一步操作',
+      category: '编辑器',
+      icon: Icons.redo_rounded,
+      shortcut: 'Ctrl+Y',
+      handler: (args) async {},
+    ));
+
+    // ---- 加粗 / 斜体 ----
+    cr.registerCommand(Command(
+      id: 'editor.insertBold',
+      title: '加粗',
+      description: '插入粗体文本',
+      category: '编辑器',
+      icon: Icons.format_bold_rounded,
+      shortcut: 'Ctrl+B',
       handler: (args) async {
-        setState(() => _saveStatus = '已保存');
+        _editorKey.currentState?.wrapSelectedText('**', '**');
+      },
+    ));
+    cr.registerCommand(Command(
+      id: 'editor.insertItalic',
+      title: '斜体',
+      description: '插入斜体文本',
+      category: '编辑器',
+      icon: Icons.format_italic_rounded,
+      shortcut: 'Ctrl+I',
+      handler: (args) async {
+        _editorKey.currentState?.wrapSelectedText('*', '*');
       },
     ));
 
-    commandRegistry.registerCommand(Command(
+    // ---- 代码块 ----
+    cr.registerCommand(Command(
+      id: 'editor.insertCode',
+      title: '代码块',
+      description: '插入代码块',
+      category: '编辑器',
+      icon: Icons.code_rounded,
+      handler: (args) async {
+        _editorKey.currentState?.wrapSelectedText('```\n', '\n```');
+      },
+    ));
+
+    // ---- 引用 ----
+    cr.registerCommand(Command(
+      id: 'editor.insertQuote',
+      title: '引用',
+      description: '插入引用',
+      category: '编辑器',
+      icon: Icons.format_quote_rounded,
+      handler: (args) async {
+        _editorKey.currentState?.insertAtLineStart('> ');
+      },
+    ));
+
+    // ---- 无序列表 ----
+    cr.registerCommand(Command(
+      id: 'editor.insertUnorderedList',
+      title: '无序列表',
+      description: '插入无序列表',
+      category: '编辑器',
+      icon: Icons.format_list_bulleted_rounded,
+      handler: (args) async {
+        _editorKey.currentState?.insertAtLineStart('- ');
+      },
+    ));
+
+    // ---- 有序列表 ----
+    cr.registerCommand(Command(
+      id: 'editor.insertOrderedList',
+      title: '有序列表',
+      description: '插入有序列表',
+      category: '编辑器',
+      icon: Icons.format_list_numbered_rounded,
+      handler: (args) async {
+        _editorKey.currentState?.insertAtLineStart('1. ');
+      },
+    ));
+
+    // ---- 标题 ----
+    cr.registerCommand(Command(
+      id: 'editor.insertHeading',
+      title: '标题',
+      description: '插入标题',
+      category: '编辑器',
+      icon: Icons.title_rounded,
+      handler: (args) async {
+        _editorKey.currentState?.insertAtLineStart('## ');
+      },
+    ));
+
+    // ---- 分割线 ----
+    cr.registerCommand(Command(
+      id: 'editor.insertDivider',
+      title: '分割线',
+      description: '插入分割线',
+      category: '编辑器',
+      icon: Icons.horizontal_rule_rounded,
+      handler: (args) async {
+        _editorKey.currentState?.insertText('\n---\n');
+      },
+    ));
+
+    // ---- 链接 ----
+    cr.registerCommand(Command(
+      id: 'editor.insertLink',
+      title: '链接',
+      description: '插入链接',
+      category: '编辑器',
+      icon: Icons.link_rounded,
+      handler: (args) async {
+        final editor = _editorKey.currentState;
+        if (editor == null) return;
+        final selected = editor.getSelectedText();
+        if (selected.isNotEmpty) {
+          editor.replaceSelectedText('[$selected](url)');
+        } else {
+          editor.insertText('[链接文字](url)');
+        }
+      },
+    ));
+
+    // ---- 视图命令 ----
+    cr.registerCommand(Command(
       id: 'view.toggleSidebar',
       title: '切换侧边栏',
       description: '显示或隐藏侧边栏',
@@ -96,8 +236,7 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
         setState(() => _isSidebarVisible = !_isSidebarVisible);
       },
     ));
-
-    commandRegistry.registerCommand(Command(
+    cr.registerCommand(Command(
       id: 'view.togglePreview',
       title: '切换预览',
       description: '显示或隐藏预览面板',
@@ -108,19 +247,63 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
       },
     ));
 
-    commandRegistry.registerCommand(Command(
+    // ---- 命令面板 ----
+    cr.registerCommand(Command(
       id: 'commandPalette.open',
       title: '命令面板',
       description: '打开命令面板',
       category: '通用',
       icon: Icons.search_rounded,
       handler: (args) async {
-        if (mounted) {
-          CommandPalette.show(context);
-        }
+        if (mounted) CommandPalette.show(context);
       },
     ));
   }
+
+  // ==================== 保存 ====================
+
+  Future<void> _handleSave() async {
+    if (_currentFilePath != null) {
+      try {
+        final file = File(_currentFilePath!);
+        final content = _editorKey.currentState?.getText() ?? _editorContent;
+        await file.writeAsString(content);
+        setState(() {
+          _editorContent = content;
+          _saveStatus = '已保存';
+        });
+      } catch (e) {
+        _showSnackBar('保存失败: $e');
+      }
+    } else {
+      await _handleSaveAs();
+    }
+  }
+
+  Future<void> _handleSaveAs() async {
+    final result = await FilePicker.platform.saveFile(
+      dialogTitle: '另存为',
+      fileName: 'untitled.md',
+      type: FileType.custom,
+      allowedExtensions: ['md', 'markdown', 'txt'],
+    );
+    if (result == null) return;
+
+    try {
+      final file = File(result);
+      final content = _editorKey.currentState?.getText() ?? _editorContent;
+      await file.writeAsString(content);
+      setState(() {
+        _currentFilePath = result;
+        _editorContent = content;
+        _saveStatus = '已保存';
+      });
+    } catch (e) {
+      _showSnackBar('保存失败: $e');
+    }
+  }
+
+  // ==================== 布局 ====================
 
   @override
   Widget build(BuildContext context) {
@@ -132,12 +315,8 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
         autofocus: true,
         onKeyEvent: _handleKeyEvent,
         child: DropTarget(
-          onDragEntered: (detail) {
-            setState(() => _isDragging = true);
-          },
-          onDragExited: (detail) {
-            setState(() => _isDragging = false);
-          },
+          onDragEntered: (detail) => setState(() => _isDragging = true),
+          onDragExited: (detail) => setState(() => _isDragging = false),
           onDragDone: (detail) {
             setState(() => _isDragging = false);
             _handleDrop(detail);
@@ -146,17 +325,18 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
             children: [
               Column(
                 children: [
-                  // 自定义标题栏
                   CustomTitleBar(
                     currentFileName: _currentFilePath?.split('/').last.split('\\').last,
                     isSaved: _saveStatus == '已保存',
                   ),
-
-                  // 主内容区域 - 三栏布局
+                  ModernToolbar(
+                    onCommand: (id) => CommandRegistry().executeCommand(id),
+                    isPreviewMode: _isPreviewMode,
+                    fileCategory: _fileCategory,
+                  ),
                   Expanded(
                     child: Row(
                       children: [
-                        // 左侧文件树
                         if (_isSidebarVisible)
                           FileExplorer(
                             rootPath: _rootPath,
@@ -164,8 +344,6 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
                             onFileSelected: _handleFileSelected,
                             onFolderOpened: _handleFolderOpened,
                           ),
-
-                        // 中间编辑区
                         Expanded(
                           flex: 3,
                           child: _isPreviewMode
@@ -178,9 +356,11 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
                                   scrollController: _syncController.rightController,
                                 )
                               : ModernMarkdownEditor(
+                                  key: _editorKey,
                                   filePath: _currentFilePath ?? '',
                                   initialContent: _editorContent,
                                   onChanged: _handleContentChanged,
+                                  onCursorChanged: _handleCursorChanged,
                                   scrollController: _syncController.leftController,
                                   fileCategory: _fileCategory,
                                   isReadOnly: _fileCategory != FileCategory.markdown,
@@ -189,8 +369,6 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
                                   onLoadFullFile: _handleLoadFullFile,
                                 ),
                         ),
-
-                        // 右侧预览区 (非预览模式时显示)
                         if (!_isPreviewMode)
                           Expanded(
                             flex: 2,
@@ -206,72 +384,15 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
                       ],
                     ),
                   ),
-
-                  // 状态栏
                   ModernStatusBar(
                     saveStatus: _saveStatus,
                     line: _line,
                     column: _column,
+                    fileType: _statusBarFileType(),
                   ),
                 ],
               ),
-
-              // 拖拽覆盖层
-              if (_isDragging)
-                Container(
-                  color: theme.primaryMist.withValues(alpha: 0.8),
-                  child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 48,
-                        vertical: 32,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.surface,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: theme.primary,
-                          width: 2,
-                          strokeAlign: BorderSide.strokeAlignInside,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: theme.primary.withValues(alpha: 0.2),
-                            blurRadius: 32,
-                            offset: const Offset(0, 16),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.folder_open_rounded,
-                            size: 64,
-                            color: theme.primary,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            '释放以打开文件夹',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: theme.text,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '支持拖入文件夹到此处打开',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: theme.tertiaryText,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+              if (_isDragging) _buildDropOverlay(theme),
             ],
           ),
         ),
@@ -279,11 +400,56 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
     );
   }
 
+  String _statusBarFileType() {
+    switch (_fileCategory) {
+      case FileCategory.markdown:
+        return 'Markdown';
+      case FileCategory.data:
+        return 'Data';
+      case FileCategory.log:
+        return 'Log';
+      case FileCategory.text:
+        return 'Text';
+      case FileCategory.binary:
+        return 'Binary';
+    }
+  }
+
+  Widget _buildDropOverlay(MarkFlowTheme theme) {
+    return Container(
+      color: theme.primaryMist.withValues(alpha: 0.8),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 32),
+          decoration: BoxDecoration(
+            color: theme.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: theme.primary, width: 2, strokeAlign: BorderSide.strokeAlignInside),
+            boxShadow: [
+              BoxShadow(color: theme.primary.withValues(alpha: 0.2), blurRadius: 32, offset: const Offset(0, 16)),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.folder_open_rounded, size: 64, color: theme.primary),
+              const SizedBox(height: 16),
+              Text('释放以打开文件夹', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: theme.text)),
+              const SizedBox(height: 8),
+              Text('支持拖入文件夹到此处打开', style: TextStyle(fontSize: 14, color: theme.tertiaryText)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ==================== 事件处理 ====================
+
   void _handleDrop(DropDoneDetails detail) {
     for (final file in detail.files) {
       final path = file.path;
       final entity = FileSystemEntity.typeSync(path);
-      
       if (entity == FileSystemEntityType.directory) {
         _handleFolderOpened(path);
         break;
@@ -323,9 +489,7 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
   }
 
   void _handleFolderOpened(String path) {
-    setState(() {
-      _rootPath = path;
-    });
+    setState(() => _rootPath = path);
   }
 
   void _handleFileSelected(String path) async {
@@ -333,7 +497,6 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
       final file = File(path);
       if (!await file.exists()) return;
 
-      // MarkFlow 只处理 Markdown 文件
       if (!FileUtils.isMarkdownFile(path)) {
         _showSnackBar('仅支持打开 Markdown 文件（.md / .markdown / .mdown）');
         return;
@@ -345,7 +508,6 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
       int totalLines = 0;
 
       if (fileSize > _largeFileThreshold) {
-        // 大 Markdown 文件：弹窗确认
         final lines = await file.readAsLines();
         totalLines = lines.length;
 
@@ -363,7 +525,6 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
           content = lines.join('\n');
         }
       } else {
-        // 正常文件：直接读取
         content = await file.readAsString();
         totalLines = '\n'.allMatches(content).length + 1;
       }
@@ -381,7 +542,6 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
     }
   }
 
-  /// Markdown 大文件确认弹窗
   Future<bool> _showMarkdownLargeWarningDialog({
     required int fileSize,
     required int totalLines,
@@ -401,10 +561,7 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '文件大小为 $sizeText，共 $totalLines 行。',
-              style: const TextStyle(fontSize: 14),
-            ),
+            Text('文件大小为 $sizeText，共 $totalLines 行。', style: const TextStyle(fontSize: 14)),
             const SizedBox(height: 8),
             Text(
               '预览面板会对 Markdown 全量解析渲染，大文件可能导致卡顿。'
@@ -414,26 +571,17 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('继续打开'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('继续打开')),
         ],
       ),
     );
     return result ?? false;
   }
 
-  /// 加载完整文件（由编辑器截断提示条中的按钮触发）
   void _handleLoadFullFile() {
     if (_currentFilePath == null) return;
-    final path = _currentFilePath!;
-    // 重新走 _handleFileSelected，但跳过弹窗直接全量加载
-    _loadFullFile(path);
+    _loadFullFile(_currentFilePath!);
   }
 
   Future<void> _loadFullFile(String path) async {
@@ -463,13 +611,13 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
     setState(() {
       _editorContent = content;
       _saveStatus = '已修改';
-      _updateCursorPosition(content);
     });
   }
 
-  void _updateCursorPosition(String content) {
-    final lines = content.split('\n');
-    _line = lines.length;
-    _column = lines.last.length + 1;
+  void _handleCursorChanged(int line, int column) {
+    setState(() {
+      _line = line;
+      _column = column;
+    });
   }
 }

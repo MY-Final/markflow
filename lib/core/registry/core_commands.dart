@@ -87,6 +87,72 @@ void registerCoreCommands() {
   ));
 
   commandRegistry.registerCommand(Command(
+    id: 'editor.insertQuote',
+    title: '引用',
+    description: '插入引用',
+    category: '编辑器',
+    icon: Icons.format_quote_rounded,
+    handler: (args) async {
+      debugPrint('Execute: editor.insertQuote');
+    },
+  ));
+
+  commandRegistry.registerCommand(Command(
+    id: 'editor.insertUnorderedList',
+    title: '无序列表',
+    description: '插入无序列表',
+    category: '编辑器',
+    icon: Icons.format_list_bulleted_rounded,
+    handler: (args) async {
+      debugPrint('Execute: editor.insertUnorderedList');
+    },
+  ));
+
+  commandRegistry.registerCommand(Command(
+    id: 'editor.insertOrderedList',
+    title: '有序列表',
+    description: '插入有序列表',
+    category: '编辑器',
+    icon: Icons.format_list_numbered_rounded,
+    handler: (args) async {
+      debugPrint('Execute: editor.insertOrderedList');
+    },
+  ));
+
+  commandRegistry.registerCommand(Command(
+    id: 'editor.insertHeading',
+    title: '标题',
+    description: '插入标题',
+    category: '编辑器',
+    icon: Icons.title_rounded,
+    handler: (args) async {
+      debugPrint('Execute: editor.insertHeading');
+    },
+  ));
+
+  commandRegistry.registerCommand(Command(
+    id: 'editor.insertDivider',
+    title: '分割线',
+    description: '插入分割线',
+    category: '编辑器',
+    icon: Icons.horizontal_rule_rounded,
+    handler: (args) async {
+      debugPrint('Execute: editor.insertDivider');
+    },
+  ));
+
+  commandRegistry.registerCommand(Command(
+    id: 'editor.insertLink',
+    title: '链接',
+    description: '插入链接',
+    category: '编辑器',
+    icon: Icons.link_rounded,
+    handler: (args) async {
+      debugPrint('Execute: editor.insertLink');
+    },
+  ));
+
+  commandRegistry.registerCommand(Command(
     id: 'editor.insertImage',
     title: '插入图片',
     description: '从文件插入图片',

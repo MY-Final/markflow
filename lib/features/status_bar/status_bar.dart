@@ -72,7 +72,7 @@ class ModernStatusBar extends StatelessWidget {
   }
 
   Widget _buildSaveStatus(MarkFlowTheme theme) {
-    final isSaved = saveStatus == 'Saved';
+    final isSaved = saveStatus == '已保存' || saveStatus == 'Saved';
     final color = isSaved ? theme.primary : const Color(0xFFB8860B);
 
     return Row(

@@ -8,21 +8,13 @@ class ModernMarkdownEditor extends StatefulWidget {
   final String filePath;
   final String initialContent;
   final Function(String)? onChanged;
+  final Function(int line, int column)? onCursorChanged;
   final ScrollController? scrollController;
 
-  /// 文件内容分类（用于决定渲染策略）
   final FileCategory fileCategory;
-
-  /// 是否为只读模式（非 Markdown 大文件自动只读）
   final bool isReadOnly;
-
-  /// 内容是否被截断（仅显示了前 N 行）
   final bool isTruncated;
-
-  /// 文件总行数（截断时用于提示）
   final int totalLines;
-
-  /// 用户点击"加载完整文件"时的回调
   final VoidCallback? onLoadFullFile;
 
   const ModernMarkdownEditor({
@@ -30,6 +22,7 @@ class ModernMarkdownEditor extends StatefulWidget {
     this.filePath = '',
     this.initialContent = '',
     this.onChanged,
+    this.onCursorChanged,
     this.scrollController,
     this.fileCategory = FileCategory.markdown,
     this.isReadOnly = false,
@@ -39,15 +32,17 @@ class ModernMarkdownEditor extends StatefulWidget {
   });
 
   @override
-  State<ModernMarkdownEditor> createState() => _ModernMarkdownEditorState();
+  State<ModernMarkdownEditor> createState() => ModernMarkdownEditorState();
 }
 
-class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
+class ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
   late TextEditingController _controller;
   late FocusNode _focusNode;
   final SettingsService _settingsService = SettingsService();
   int _lineCount = 1;
   final ScrollController _lineNumberScrollController = ScrollController();
+
+  TextEditingController get controller => _controller;
 
   @override
   void initState() {
@@ -57,6 +52,7 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
     _settingsService.addListener(_onSettingsChanged);
     _updateLineCount();
     widget.scrollController?.addListener(_syncLineNumbers);
+    _controller.addListener(_onSelectionChanged);
   }
 
   @override
@@ -75,6 +71,7 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
   @override
   void dispose() {
     widget.scrollController?.removeListener(_syncLineNumbers);
+    _controller.removeListener(_onSelectionChanged);
     _lineNumberScrollController.dispose();
     _settingsService.removeListener(_onSettingsChanged);
     _controller.dispose();
@@ -90,12 +87,110 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
     _lineCount = '\n'.allMatches(_controller.text).length + 1;
   }
 
+  void _onSelectionChanged() {
+    if (!mounted) return;
+    final selection = _controller.selection;
+    final text = _controller.text;
+    if (selection.start < 0 || selection.start > text.length) return;
+
+    final beforeCursor = text.substring(0, selection.start);
+    final lines = beforeCursor.split('\n');
+    widget.onCursorChanged?.call(lines.length, lines.last.length + 1);
+  }
+
   void _syncLineNumbers() {
     if (_lineNumberScrollController.hasClients &&
         widget.scrollController?.hasClients == true) {
       _lineNumberScrollController.jumpTo(widget.scrollController!.offset);
     }
   }
+
+  void _notifyChanged() {
+    _updateLineCount();
+    setState(() {});
+    widget.onChanged?.call(_controller.text);
+  }
+
+  // ==================== 编辑器命令方法 ====================
+
+  String getText() => _controller.text;
+
+  String getSelectedText() {
+    final selection = _controller.selection;
+    if (selection.isCollapsed) return '';
+    return _controller.text.substring(selection.start, selection.end);
+  }
+
+  void wrapSelectedText(String before, String after) {
+    final text = _controller.text;
+    final selection = _controller.selection;
+
+    if (selection.isCollapsed) {
+      final newText = text.replaceRange(selection.start, selection.end, '$before$after');
+      _controller.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: selection.start + before.length),
+      );
+    } else {
+      final selectedText = text.substring(selection.start, selection.end);
+      final newText = text.replaceRange(selection.start, selection.end, '$before$selectedText$after');
+      _controller.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection(
+          baseOffset: selection.start + before.length,
+          extentOffset: selection.start + before.length + selectedText.length,
+        ),
+      );
+    }
+    _notifyChanged();
+  }
+
+  void insertText(String text) {
+    final currentText = _controller.text;
+    final selection = _controller.selection;
+    final newText = currentText.replaceRange(selection.start, selection.end, text);
+    _controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: selection.start + text.length),
+    );
+    _notifyChanged();
+  }
+
+  void insertAtLineStart(String prefix) {
+    final text = _controller.text;
+    final selection = _controller.selection;
+    final cursorPos = selection.start;
+
+    int lineStart = cursorPos;
+    while (lineStart > 0 && text[lineStart - 1] != '\n') {
+      lineStart--;
+    }
+
+    final newText = text.replaceRange(lineStart, lineStart, prefix);
+    _controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: cursorPos + prefix.length),
+    );
+    _notifyChanged();
+  }
+
+  void replaceSelectedText(String replacement) {
+    final text = _controller.text;
+    final selection = _controller.selection;
+    final newText = text.replaceRange(selection.start, selection.end, replacement);
+    _controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: selection.start + replacement.length),
+    );
+    _notifyChanged();
+  }
+
+  // ==================== 撤销/重做 ====================
+
+  void undo() {}
+  void redo() {}
+
+  // ==================== UI ====================
 
   @override
   Widget build(BuildContext context) {
@@ -129,17 +224,13 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 截断提示条
                 if (widget.isTruncated) _buildTruncationBar(theme),
-                // 只读提示条
                 if (widget.isReadOnly && !widget.isTruncated)
                   _buildReadOnlyBar(theme),
-                // 编辑器主体
                 Expanded(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 行号区域（禁止显示滚动条）
                       if (settings.editorShowLineNumbers) ...[
                         Container(
                           width: 50,
@@ -171,7 +262,6 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
                           color: theme.borderLight,
                         ),
                       ],
-                      // 编辑器区域
                       Expanded(
                         child: SingleChildScrollView(
                           controller: widget.scrollController,
@@ -217,7 +307,6 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
                     ],
                   ),
                 ),
-                // 底部文件类型标签
                 _buildFileTypeLabel(theme),
               ],
             ),
@@ -227,7 +316,6 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
     );
   }
 
-  /// 截断提示条：黄底 + 加载完整文件按钮
   Widget _buildTruncationBar(MarkFlowTheme theme) {
     return Container(
       width: double.infinity,
@@ -245,10 +333,7 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
           Expanded(
             child: Text(
               '文件过大（共 ${widget.totalLines} 行），仅显示前部分内容。',
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.orange.shade900,
-              ),
+              style: TextStyle(fontSize: 13, color: Colors.orange.shade900),
             ),
           ),
           if (widget.onLoadFullFile != null)
@@ -265,7 +350,6 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
     );
   }
 
-  /// 只读提示条
   Widget _buildReadOnlyBar(MarkFlowTheme theme) {
     final categoryLabel = _categoryDisplayName(widget.fileCategory);
     return Container(
@@ -290,7 +374,6 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
     );
   }
 
-  /// 底部文件类型标签
   Widget _buildFileTypeLabel(MarkFlowTheme theme) {
     final label = _categoryDisplayName(widget.fileCategory);
     final suffix = widget.isReadOnly ? ' · 只读' : '';
@@ -326,7 +409,6 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
   }
 }
 
-/// 禁止显示滚动条和过冲指示器的 ScrollBehavior，用于行号区域
 class _NoScrollbarBehavior extends ScrollBehavior {
   @override
   Widget buildScrollbar(BuildContext context, Widget child, ScrollableDetails details) {
