@@ -21,7 +21,7 @@ class _ModernPreviewPanelState extends State<ModernPreviewPanel> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).extension<MarkFlowTheme>()!;
-    
+
     return Container(
       decoration: BoxDecoration(
         color: theme.surface,
@@ -60,7 +60,7 @@ class _ModernPreviewPanelState extends State<ModernPreviewPanel> {
           Icon(
             Icons.preview_rounded,
             size: 16,
-            color: theme.secondaryText,
+            color: theme.tertiaryText,
           ),
           const SizedBox(width: 8),
           Text(
@@ -68,7 +68,7 @@ class _ModernPreviewPanelState extends State<ModernPreviewPanel> {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: theme.secondaryText,
+              color: theme.tertiaryText,
               letterSpacing: 0.5,
             ),
           ),
@@ -86,14 +86,14 @@ class _ModernPreviewPanelState extends State<ModernPreviewPanel> {
             Icon(
               Icons.preview_rounded,
               size: 48,
-              color: theme.secondaryText.withValues(alpha: 0.2),
+              color: theme.ghostText,
             ),
             const SizedBox(height: 16),
             Text(
               'Preview will appear here',
               style: TextStyle(
                 fontSize: 13,
-                color: theme.secondaryText.withValues(alpha: 0.4),
+                color: theme.tertiaryText,
               ),
             ),
           ],
@@ -108,81 +108,153 @@ class _ModernPreviewPanelState extends State<ModernPreviewPanel> {
         child: Markdown(
           data: widget.content,
           controller: widget.scrollController,
-          padding: const EdgeInsets.all(32),
-          styleSheet: MarkdownStyleSheet(
-            h1: GoogleFonts.inter(
-              fontSize: 36,
-              fontWeight: FontWeight.w600,
-              color: theme.text,
-              height: 1.3,
-            ),
-            h2: GoogleFonts.inter(
-              fontSize: 28,
-              fontWeight: FontWeight.w600,
-              color: theme.text,
-              height: 1.3,
-            ),
-            h3: GoogleFonts.inter(
-              fontSize: 22,
-              fontWeight: FontWeight.w600,
-              color: theme.text,
-              height: 1.4,
-            ),
-            p: GoogleFonts.inter(
-              fontSize: 16,
-              color: theme.text,
-              height: 1.8,
-            ),
-            code: GoogleFonts.jetBrainsMono(
-              fontSize: 14,
-              color: theme.primary,
-              backgroundColor: theme.hover,
-            ),
-            codeblockDecoration: BoxDecoration(
-              color: theme.hover,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: theme.border,
-                width: 1,
-              ),
-            ),
-            blockquote: GoogleFonts.inter(
-              fontSize: 16,
-              color: theme.secondaryText,
-              fontStyle: FontStyle.italic,
-            ),
-            blockquoteDecoration: BoxDecoration(
-              border: Border(
-                left: BorderSide(
-                  color: theme.primary,
-                  width: 3,
-                ),
-              ),
-            ),
-            listBullet: GoogleFonts.inter(
-              fontSize: 16,
-              color: theme.text,
-            ),
-            a: GoogleFonts.inter(
-              fontSize: 16,
-              color: theme.primary,
-              decoration: TextDecoration.underline,
-            ),
-            tableBorder: TableBorder.all(
-              color: theme.border,
-              width: 1,
-            ),
-            tableHead: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: theme.text,
-            ),
-            tableBody: GoogleFonts.inter(
-              fontSize: 14,
-              color: theme.text,
-            ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 32,
+            vertical: 24,
+          ),
+          styleSheet: _buildMarkdownStyleSheet(theme),
+        ),
+      ),
+    );
+  }
+
+  MarkdownStyleSheet _buildMarkdownStyleSheet(MarkFlowTheme theme) {
+    return MarkdownStyleSheet(
+      // 标题
+      h1: GoogleFonts.inter(
+        fontSize: 28,
+        fontWeight: FontWeight.w600,
+        color: theme.text,
+        height: 1.3,
+        letterSpacing: -0.5,
+      ),
+      h2: GoogleFonts.inter(
+        fontSize: 22,
+        fontWeight: FontWeight.w600,
+        color: theme.text,
+        height: 1.3,
+        letterSpacing: -0.3,
+      ),
+      h3: GoogleFonts.inter(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: theme.text,
+        height: 1.4,
+      ),
+      h4: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: theme.text,
+        height: 1.4,
+      ),
+
+      // 正文 - 行高 1.9 非常舒适
+      p: GoogleFonts.inter(
+        fontSize: 15,
+        color: theme.secondaryText,
+        height: 1.9,
+      ),
+
+      // 强调
+      strong: GoogleFonts.inter(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        color: theme.text,
+      ),
+      em: GoogleFonts.inter(
+        fontSize: 15,
+        fontStyle: FontStyle.italic,
+        color: theme.primaryLight, // 斜体用品牌色
+      ),
+
+      // 代码
+      code: GoogleFonts.jetBrainsMono(
+        fontSize: 13,
+        color: theme.primary,
+        backgroundColor: theme.surfaceWarm,
+      ),
+      codeblockDecoration: BoxDecoration(
+        color: theme.surfaceWarm,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.border,
+          width: 1,
+        ),
+      ),
+      codeblockPadding: const EdgeInsets.all(16),
+
+      // 引用
+      blockquote: GoogleFonts.inter(
+        fontSize: 15,
+        color: theme.tertiaryText,
+        fontStyle: FontStyle.italic,
+        height: 1.9,
+      ),
+      blockquoteDecoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(
+            color: theme.primary.withValues(alpha: 0.4),
+            width: 2,
           ),
         ),
+      ),
+      blockquotePadding: const EdgeInsets.only(left: 16),
+
+      // 列表
+      listBullet: GoogleFonts.inter(
+        fontSize: 15,
+        color: theme.primary.withValues(alpha: 0.4),
+      ),
+      listBulletPadding: const EdgeInsets.only(right: 8),
+
+      // 链接
+      a: GoogleFonts.inter(
+        fontSize: 15,
+        color: theme.primary,
+        decoration: TextDecoration.underline,
+      ),
+
+      // 表格
+      tableBorder: TableBorder.all(
+        color: theme.border,
+        width: 1,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      tableHead: GoogleFonts.inter(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: theme.text,
+      ),
+      tableBody: GoogleFonts.inter(
+        fontSize: 14,
+        color: theme.secondaryText,
+      ),
+      tableHeadAlign: TextAlign.left,
+      tableCellsPadding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 8,
+      ),
+
+      // 分隔线 - 渐变效果
+      horizontalRuleDecoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: theme.border,
+            width: 1,
+          ),
+        ),
+      ),
+
+      // 图片
+      img: GoogleFonts.inter(
+        fontSize: 14,
+        color: theme.tertiaryText,
+      ),
+
+      // Checkbox
+      checkbox: GoogleFonts.inter(
+        fontSize: 15,
+        color: theme.primary,
       ),
     );
   }

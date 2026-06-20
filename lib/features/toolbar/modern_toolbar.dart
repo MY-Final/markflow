@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:markflow/core/theme/theme.dart';
+import 'package:markflow/shared/widgets/sliding_button_group.dart';
 
 class ModernToolbar extends StatelessWidget {
   final VoidCallback? onBold;
@@ -24,7 +25,7 @@ class ModernToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).extension<MarkFlowTheme>()!;
-    
+
     return Container(
       height: 48,
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -39,114 +40,133 @@ class ModernToolbar extends StatelessWidget {
       ),
       child: Row(
         children: [
+          // Logo
+          _buildLogo(theme),
+          
+          const SizedBox(width: 16),
+          
           // 左侧格式化按钮组
-          _buildButtonGroup(
-            theme,
-            children: [
-              _ToolbarButton(
-                icon: Icons.undo_rounded,
-                tooltip: 'Undo',
-                onTap: onUndo,
-                theme: theme,
-              ),
-              _ToolbarButton(
-                icon: Icons.redo_rounded,
-                tooltip: 'Redo',
-                onTap: onRedo,
-                theme: theme,
-              ),
-            ],
-          ),
-          
-          const SizedBox(width: 8),
-          
-          _buildDivider(theme),
-          
-          const SizedBox(width: 8),
-          
-          _buildButtonGroup(
-            theme,
-            children: [
-              _ToolbarButton(
-                icon: Icons.format_bold_rounded,
-                tooltip: 'Bold',
-                onTap: onBold,
-                theme: theme,
-              ),
-              _ToolbarButton(
-                icon: Icons.format_italic_rounded,
-                tooltip: 'Italic',
-                onTap: onItalic,
-                theme: theme,
-              ),
-              _ToolbarButton(
-                icon: Icons.code_rounded,
-                tooltip: 'Code',
-                onTap: onCode,
-                theme: theme,
-              ),
-            ],
-          ),
+          _buildFormatGroup(theme),
           
           const Spacer(),
           
           // 右侧视图切换
-          _buildViewToggle(theme),
+          SlidingButtonGroup<String>(
+            options: [
+              SlidingButtonOption(
+                value: 'edit',
+                label: 'Edit',
+                icon: Icons.edit_rounded,
+              ),
+              SlidingButtonOption(
+                value: 'split',
+                label: 'Split',
+                icon: Icons.vertical_split_rounded,
+              ),
+              SlidingButtonOption(
+                value: 'preview',
+                label: 'Preview',
+                icon: Icons.preview_rounded,
+              ),
+            ],
+            selectedValue: isPreviewMode ? 'preview' : 'edit',
+            onChanged: (value) {
+              if (value == 'preview' || value == 'edit') {
+                onTogglePreview?.call();
+              }
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildButtonGroup(MarkFlowTheme theme, {required List<Widget> children}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: theme.border,
-          width: 1,
+  Widget _buildLogo(MarkFlowTheme theme) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: theme.primary,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Center(
+            child: Text(
+              'M',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
         ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: children,
-      ),
+      ],
     );
   }
 
-  Widget _buildDivider(MarkFlowTheme theme) {
-    return Container(
-      width: 1,
-      height: 24,
-      color: theme.border,
-    );
-  }
-
-  Widget _buildViewToggle(MarkFlowTheme theme) {
+  Widget _buildFormatGroup(MarkFlowTheme theme) {
     return Container(
       decoration: BoxDecoration(
-        color: theme.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: theme.border,
-          width: 1,
-        ),
+        color: theme.surfaceWarm,
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _ViewToggleButton(
-            icon: Icons.edit_rounded,
-            label: 'Edit',
-            isSelected: !isPreviewMode,
-            onTap: () => onTogglePreview?.call(),
+          _FormatButton(
+            label: 'B',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+            tooltip: 'Bold',
+            onTap: onBold,
             theme: theme,
           ),
-          _ViewToggleButton(
-            icon: Icons.preview_rounded,
-            label: 'Preview',
-            isSelected: isPreviewMode,
-            onTap: () => onTogglePreview?.call(),
+          _FormatButton(
+            label: 'I',
+            style: const TextStyle(fontStyle: FontStyle.italic),
+            tooltip: 'Italic',
+            onTap: onItalic,
+            theme: theme,
+          ),
+          _FormatButton(
+            label: 'H',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+            tooltip: 'Heading',
+            onTap: () {},
+            theme: theme,
+          ),
+          _FormatButton(
+            label: '—',
+            tooltip: 'Divider',
+            onTap: () {},
+            theme: theme,
+          ),
+          _FormatButton(
+            label: '•',
+            tooltip: 'List',
+            onTap: () {},
+            theme: theme,
+          ),
+          _FormatButton(
+            label: '1.',
+            style: const TextStyle(fontSize: 11),
+            tooltip: 'Ordered List',
+            onTap: () {},
+            theme: theme,
+          ),
+          _FormatButton(
+            label: '<>',
+            style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+            tooltip: 'Code',
+            onTap: onCode,
+            theme: theme,
+          ),
+          _FormatButton(
+            label: '❝',
+            tooltip: 'Quote',
+            onTap: () {},
             theme: theme,
           ),
         ],
@@ -155,24 +175,26 @@ class ModernToolbar extends StatelessWidget {
   }
 }
 
-class _ToolbarButton extends StatefulWidget {
-  final IconData icon;
+class _FormatButton extends StatefulWidget {
+  final String label;
+  final TextStyle? style;
   final String tooltip;
   final VoidCallback? onTap;
   final MarkFlowTheme theme;
 
-  const _ToolbarButton({
-    required this.icon,
+  const _FormatButton({
+    required this.label,
+    this.style,
     required this.tooltip,
     this.onTap,
     required this.theme,
   });
 
   @override
-  State<_ToolbarButton> createState() => _ToolbarButtonState();
+  State<_FormatButton> createState() => _FormatButtonState();
 }
 
-class _ToolbarButtonState extends State<_ToolbarButton> {
+class _FormatButtonState extends State<_FormatButton> {
   bool _isHovered = false;
 
   @override
@@ -185,87 +207,31 @@ class _ToolbarButtonState extends State<_ToolbarButton> {
         child: GestureDetector(
           onTap: widget.onTap,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
+            duration: const Duration(milliseconds: 200),
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: _isHovered ? widget.theme.hover : Colors.transparent,
-              borderRadius: BorderRadius.circular(6),
+              color: _isHovered
+                  ? widget.theme.primaryMist
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              widget.icon,
-              size: 18,
-              color: widget.theme.secondaryText,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ViewToggleButton extends StatefulWidget {
-  final IconData icon;
-  final String label;
-  final bool isSelected;
-  final VoidCallback? onTap;
-  final MarkFlowTheme theme;
-
-  const _ViewToggleButton({
-    required this.icon,
-    required this.label,
-    required this.isSelected,
-    this.onTap,
-    required this.theme,
-  });
-
-  @override
-  State<_ViewToggleButton> createState() => _ViewToggleButtonState();
-}
-
-class _ViewToggleButtonState extends State<_ViewToggleButton> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: widget.isSelected
-                ? widget.theme.selected
-                : _isHovered
-                    ? widget.theme.hover
-                    : Colors.transparent,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                widget.icon,
-                size: 16,
-                color: widget.isSelected
-                    ? widget.theme.primary
-                    : widget.theme.secondaryText,
-              ),
-              const SizedBox(width: 6),
-              Text(
+            child: Center(
+              child: Text(
                 widget.label,
-                style: TextStyle(
-                  fontSize: 12,
+                style: widget.style?.copyWith(
+                  color: _isHovered
+                      ? widget.theme.primary
+                      : widget.theme.secondaryText,
+                ) ?? TextStyle(
+                  fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: widget.isSelected
+                  color: _isHovered
                       ? widget.theme.primary
                       : widget.theme.secondaryText,
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
