@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:markflow/core/theme/theme.dart';
+import 'package:markflow/features/settings/settings_panel.dart';
 
 class CustomTitleBar extends StatelessWidget {
   final String? currentFileName;
   final bool isSaved;
+  final VoidCallback? onSettingsTap;
 
   const CustomTitleBar({
     super.key,
     this.currentFileName,
     this.isSaved = true,
+    this.onSettingsTap,
   });
 
   @override
@@ -82,6 +85,16 @@ class CustomTitleBar extends StatelessWidget {
             ),
           ),
 
+          // 设置按钮
+          _TitleBarButton(
+            icon: Icons.settings_rounded,
+            tooltip: 'Settings',
+            onTap: onSettingsTap ?? () => SettingsPanel.show(context),
+            theme: theme,
+          ),
+
+          const SizedBox(width: 4),
+
           // 窗口控制按钮 (Windows 风格)
           _buildWindowControls(theme),
         ],
@@ -110,6 +123,61 @@ class CustomTitleBar extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _TitleBarButton extends StatefulWidget {
+  final IconData icon;
+  final String? tooltip;
+  final VoidCallback onTap;
+  final MarkFlowTheme theme;
+
+  const _TitleBarButton({
+    required this.icon,
+    this.tooltip,
+    required this.onTap,
+    required this.theme,
+  });
+
+  @override
+  State<_TitleBarButton> createState() => _TitleBarButtonState();
+}
+
+class _TitleBarButtonState extends State<_TitleBarButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final button = MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: _isHovered ? widget.theme.hover : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            widget.icon,
+            size: 18,
+            color: _isHovered ? widget.theme.primary : widget.theme.tertiaryText,
+          ),
+        ),
+      ),
+    );
+
+    if (widget.tooltip != null) {
+      return Tooltip(
+        message: widget.tooltip,
+        child: button,
+      );
+    }
+    return button;
   }
 }
 

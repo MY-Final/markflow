@@ -1,0 +1,575 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:markflow/core/theme/theme.dart';
+
+class SettingsPanel extends StatefulWidget {
+  final VoidCallback onClose;
+
+  const SettingsPanel({
+    super.key,
+    required this.onClose,
+  });
+
+  static Future<void> show(BuildContext context) async {
+    await showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Settings',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return const SizedBox.shrink();
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(1, 0),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          )),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: SettingsPanel(
+              onClose: () => Navigator.of(context).pop(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  State<SettingsPanel> createState() => _SettingsPanelState();
+}
+
+class _SettingsPanelState extends State<SettingsPanel> {
+  // Editor settings
+  double _editorFontSize = 15;
+  double _editorLineHeight = 1.9;
+  bool _editorWordWrap = true;
+  bool _editorShowLineNumbers = false;
+
+  // Preview settings
+  double _previewFontSize = 15;
+  bool _previewSyncScroll = true;
+
+  // Export settings
+  String _defaultExportFormat = 'PDF';
+  bool _exportIncludeToc = false;
+
+  // Shortcut settings (display only)
+  final Map<String, String> _shortcuts = {
+    'Save': 'Ctrl+S',
+    'Undo': 'Ctrl+Z',
+    'Redo': 'Ctrl+Y',
+    'Bold': 'Ctrl+B',
+    'Italic': 'Ctrl+I',
+    'Command Palette': 'Ctrl+Shift+P',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).extension<MarkFlowTheme>()!;
+
+    return KeyboardListener(
+      focusNode: FocusNode(),
+      onKeyEvent: (event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.escape) {
+          widget.onClose();
+        }
+      },
+      child: Container(
+        width: 380,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          color: theme.surface,
+          border: Border(
+            left: BorderSide(
+              color: theme.border,
+              width: 1,
+            ),
+          ),
+        ),
+        child: Column(
+          children: [
+            _buildHeader(theme),
+            Expanded(
+              child: _buildContent(theme),
+            ),
+            _buildFooter(theme),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(MarkFlowTheme theme) {
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: theme.border,
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.settings_rounded,
+            size: 20,
+            color: theme.primary,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'Settings',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: theme.text,
+            ),
+          ),
+          const Spacer(),
+          _buildIconButton(
+            icon: Icons.close_rounded,
+            onTap: widget.onClose,
+            theme: theme,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(MarkFlowTheme theme) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSection('Editor', Icons.edit_rounded, [
+            _buildSliderSetting(
+              'Font Size',
+              _editorFontSize,
+              12,
+              24,
+              (value) => setState(() => _editorFontSize = value),
+              theme,
+              '${_editorFontSize.round()}px',
+            ),
+            _buildSliderSetting(
+              'Line Height',
+              _editorLineHeight,
+              1.2,
+              2.5,
+              (value) => setState(() => _editorLineHeight = value),
+              theme,
+              _editorLineHeight.toStringAsFixed(1),
+            ),
+            _buildSwitchSetting(
+              'Word Wrap',
+              _editorWordWrap,
+              (value) => setState(() => _editorWordWrap = value),
+              theme,
+            ),
+            _buildSwitchSetting(
+              'Show Line Numbers',
+              _editorShowLineNumbers,
+              (value) => setState(() => _editorShowLineNumbers = value),
+              theme,
+            ),
+          ]),
+          const SizedBox(height: 24),
+          _buildSection('Preview', Icons.preview_rounded, [
+            _buildSliderSetting(
+              'Font Size',
+              _previewFontSize,
+              12,
+              24,
+              (value) => setState(() => _previewFontSize = value),
+              theme,
+              '${_previewFontSize.round()}px',
+            ),
+            _buildSwitchSetting(
+              'Sync Scrolling',
+              _previewSyncScroll,
+              (value) => setState(() => _previewSyncScroll = value),
+              theme,
+            ),
+          ]),
+          const SizedBox(height: 24),
+          _buildSection('Export', Icons.file_download_rounded, [
+            _buildDropdownSetting(
+              'Default Format',
+              _defaultExportFormat,
+              ['PDF', 'HTML', 'Markdown'],
+              (value) => setState(() => _defaultExportFormat = value!),
+              theme,
+            ),
+            _buildSwitchSetting(
+              'Include Table of Contents',
+              _exportIncludeToc,
+              (value) => setState(() => _exportIncludeToc = value),
+              theme,
+            ),
+          ]),
+          const SizedBox(height: 24),
+          _buildSection('Shortcuts', Icons.keyboard_rounded, [
+            ..._shortcuts.entries.map((entry) =>
+                _buildShortcutItem(entry.key, entry.value, theme)),
+          ]),
+          const SizedBox(height: 24),
+          _buildSection('About', Icons.info_outline_rounded, [
+            _buildInfoItem('Version', '1.0.0', theme),
+            _buildInfoItem('Build', '2026.06.20', theme),
+            _buildInfoItem('License', 'MIT', theme),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooter(MarkFlowTheme theme) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: theme.border,
+            width: 1,
+          ),
+        ),
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          onPressed: () => _showResetDialog(theme),
+          icon: const Icon(Icons.restore_rounded, size: 18),
+          label: const Text('Reset to Default'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xFFC45C4A),
+            side: const BorderSide(color: Color(0xFFC45C4A)),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSection(String title, IconData icon, List<Widget> children) {
+    final theme = Theme.of(context).extension<MarkFlowTheme>()!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: Row(
+            children: [
+              Icon(icon, size: 16, color: theme.primary),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: theme.primary,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+        ...children,
+      ],
+    );
+  }
+
+  Widget _buildSliderSetting(
+    String label,
+    double value,
+    double min,
+    double max,
+    ValueChanged<double> onChanged,
+    MarkFlowTheme theme,
+    String displayValue,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: theme.secondaryText,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                SliderTheme(
+                  data: SliderThemeData(
+                    activeTrackColor: theme.primary,
+                    inactiveTrackColor: theme.border,
+                    thumbColor: theme.primary,
+                    overlayColor: theme.primaryMist,
+                    trackHeight: 4,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                  ),
+                  child: Slider(
+                    value: value,
+                    min: min,
+                    max: max,
+                    onChanged: onChanged,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            displayValue,
+            style: TextStyle(
+              fontSize: 12,
+              fontFamily: 'monospace',
+              color: theme.tertiaryText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSwitchSetting(
+    String label,
+    bool value,
+    ValueChanged<bool> onChanged,
+    MarkFlowTheme theme,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.secondaryText,
+              ),
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: theme.primary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdownSetting(
+    String label,
+    String value,
+    List<String> options,
+    ValueChanged<String?> onChanged,
+    MarkFlowTheme theme,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.secondaryText,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: theme.surfaceWarm,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: theme.border),
+            ),
+            child: DropdownButton<String>(
+              value: value,
+              onChanged: onChanged,
+              underline: const SizedBox.shrink(),
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.secondaryText,
+              ),
+              items: options.map((option) {
+                return DropdownMenuItem(
+                  value: option,
+                  child: Text(option),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShortcutItem(String action, String shortcut, MarkFlowTheme theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              action,
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.secondaryText,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: theme.surfaceWarm,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: theme.border),
+            ),
+            child: Text(
+              shortcut,
+              style: TextStyle(
+                fontSize: 12,
+                fontFamily: 'monospace',
+                color: theme.tertiaryText,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoItem(String label, String value, MarkFlowTheme theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.secondaryText,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              color: theme.tertiaryText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIconButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    required MarkFlowTheme theme,
+  }) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: theme.hover,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: theme.secondaryText,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showResetDialog(MarkFlowTheme theme) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: theme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(
+          'Reset Settings',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: theme.text,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to reset all settings to default? This action cannot be undone.',
+          style: TextStyle(
+            fontSize: 14,
+            color: theme.secondaryText,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: theme.tertiaryText),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _resetToDefault();
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFC45C4A),
+            ),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _resetToDefault() {
+    setState(() {
+      _editorFontSize = 15;
+      _editorLineHeight = 1.9;
+      _editorWordWrap = true;
+      _editorShowLineNumbers = false;
+      _previewFontSize = 15;
+      _previewSyncScroll = true;
+      _defaultExportFormat = 'PDF';
+      _exportIncludeToc = false;
+    });
+  }
+}
