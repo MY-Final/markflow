@@ -30,6 +30,14 @@ class _ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
   }
 
   @override
+  void didUpdateWidget(ModernMarkdownEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialContent != oldWidget.initialContent) {
+      _controller.text = widget.initialContent;
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     _focusNode.dispose();
