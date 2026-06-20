@@ -55,12 +55,12 @@ class _SettingsPanelState extends State<SettingsPanel> {
 
   // Shortcut settings (display only)
   final Map<String, String> _shortcuts = {
-    'Save': 'Ctrl+S',
-    'Undo': 'Ctrl+Z',
-    'Redo': 'Ctrl+Y',
-    'Bold': 'Ctrl+B',
-    'Italic': 'Ctrl+I',
-    'Command Palette': 'Ctrl+Shift+P',
+    '保存': 'Ctrl+S',
+    '撤销': 'Ctrl+Z',
+    '重做': 'Ctrl+Y',
+    '加粗': 'Ctrl+B',
+    '斜体': 'Ctrl+I',
+    '命令面板': 'Ctrl+Shift+P',
   };
 
   @override
@@ -132,7 +132,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
           ),
           const SizedBox(width: 12),
           Text(
-            'Settings',
+            '设置',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -156,9 +156,9 @@ class _SettingsPanelState extends State<SettingsPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSection('Editor', Icons.edit_rounded, [
+          _buildSection('编辑器', Icons.edit_rounded, [
             _buildSliderSetting(
-              'Font Size',
+              '字体大小',
               _settings.editorFontSize,
               12,
               24,
@@ -170,7 +170,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
               '${_settings.editorFontSize.round()}px',
             ),
             _buildSliderSetting(
-              'Line Height',
+              '行高',
               _settings.editorLineHeight,
               1.2,
               2.5,
@@ -182,7 +182,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
               _settings.editorLineHeight.toStringAsFixed(1),
             ),
             _buildSwitchSetting(
-              'Word Wrap',
+              '自动换行',
               _settings.editorWordWrap,
               (value) {
                 setState(() => _settings = _settings.copyWith(editorWordWrap: value));
@@ -191,7 +191,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
               theme,
             ),
             _buildSwitchSetting(
-              'Show Line Numbers',
+              '显示行号',
               _settings.editorShowLineNumbers,
               (value) {
                 setState(() => _settings = _settings.copyWith(editorShowLineNumbers: value));
@@ -201,9 +201,9 @@ class _SettingsPanelState extends State<SettingsPanel> {
             ),
           ]),
           const SizedBox(height: 24),
-          _buildSection('Preview', Icons.preview_rounded, [
+          _buildSection('预览', Icons.preview_rounded, [
             _buildSliderSetting(
-              'Font Size',
+              '字体大小',
               _settings.previewFontSize,
               12,
               24,
@@ -215,7 +215,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
               '${_settings.previewFontSize.round()}px',
             ),
             _buildSwitchSetting(
-              'Sync Scrolling',
+              '同步滚动',
               _settings.previewSyncScroll,
               (value) {
                 setState(() => _settings = _settings.copyWith(previewSyncScroll: value));
@@ -225,9 +225,9 @@ class _SettingsPanelState extends State<SettingsPanel> {
             ),
           ]),
           const SizedBox(height: 24),
-          _buildSection('Export', Icons.file_download_rounded, [
+          _buildSection('导出', Icons.file_download_rounded, [
             _buildDropdownSetting(
-              'Default Format',
+              '默认格式',
               _settings.defaultExportFormat,
               ['PDF', 'HTML', 'Markdown'],
               (value) {
@@ -237,7 +237,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
               theme,
             ),
             _buildSwitchSetting(
-              'Include Table of Contents',
+              '包含目录',
               _settings.exportIncludeToc,
               (value) {
                 setState(() => _settings = _settings.copyWith(exportIncludeToc: value));
@@ -247,16 +247,16 @@ class _SettingsPanelState extends State<SettingsPanel> {
             ),
           ]),
           const SizedBox(height: 24),
-          _buildSection('Shortcuts', Icons.keyboard_rounded, [
+          _buildSection('快捷键', Icons.keyboard_rounded, [
             ..._shortcuts.entries.map((entry) =>
                 _buildShortcutItem(entry.key, entry.value, theme)),
           ]),
           const SizedBox(height: 24),
-          _buildSection('About', Icons.info_outline_rounded, [
-            _buildInfoItem('Version', '1.0.0', theme),
-            _buildInfoItem('Build', '2026.06.20', theme),
-            _buildInfoItem('License', 'MIT', theme),
-            _buildInfoItem('Settings Path', _settingsService.getSettingsPath(), theme),
+          _buildSection('关于', Icons.info_outline_rounded, [
+            _buildInfoItem('版本', '1.0.0', theme),
+            _buildInfoItem('构建', '2026.06.20', theme),
+            _buildInfoItem('许可证', 'MIT', theme),
+            _buildInfoItem('配置路径', _settingsService.getSettingsPath(), theme),
           ]),
         ],
       ),
@@ -279,7 +279,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
         child: OutlinedButton.icon(
           onPressed: () => _showResetDialog(theme),
           icon: const Icon(Icons.restore_rounded, size: 18),
-          label: const Text('Reset to Default'),
+          label: const Text('恢复默认设置'),
           style: OutlinedButton.styleFrom(
             foregroundColor: const Color(0xFFC45C4A),
             side: const BorderSide(color: Color(0xFFC45C4A)),
@@ -558,7 +558,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
           borderRadius: BorderRadius.circular(16),
         ),
         title: Text(
-          'Reset Settings',
+          '重置设置',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -566,7 +566,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
           ),
         ),
         content: Text(
-          'Are you sure you want to reset all settings to default? This action cannot be undone.',
+          '确定要将所有设置恢复为默认值吗？此操作不可撤销。',
           style: TextStyle(
             fontSize: 14,
             color: theme.secondaryText,
@@ -576,7 +576,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
-              'Cancel',
+              '取消',
               style: TextStyle(color: theme.tertiaryText),
             ),
           ),
@@ -588,7 +588,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
             style: TextButton.styleFrom(
               foregroundColor: const Color(0xFFC45C4A),
             ),
-            child: const Text('Reset'),
+            child: const Text('重置'),
           ),
         ],
       ),
