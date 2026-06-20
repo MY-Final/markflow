@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:markflow/core/theme/theme.dart';
@@ -213,11 +214,20 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
     });
   }
 
-  void _handleFileSelected(String path) {
-    setState(() {
-      _currentFilePath = path;
-      _saveStatus = 'Saved';
-    });
+  void _handleFileSelected(String path) async {
+    try {
+      final file = File(path);
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        setState(() {
+          _currentFilePath = path;
+          _editorContent = content;
+          _saveStatus = 'Saved';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error reading file: $e');
+    }
   }
 
   void _handleContentChanged(String content) {
