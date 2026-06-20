@@ -24,16 +24,7 @@ jobs:
       - run: flutter pub get
 
       - name: Build
-        run: flutter build linux --release
-
-      - name: Debug build output
-        run: |
-          echo "=== build/linux directory ==="
-          find build/linux -maxdepth 5 -type d 2>/dev/null || echo "(no build output)"
-          echo "=== Looking for binary ==="
-          find build -type f -executable 2>/dev/null | head -10
-          echo "=== Looking for lib ==="
-          find build -name "*.so" 2>/dev/null | head -10
+        run: flutter build windows --release
 
       - name: Package
         shell: pwsh
