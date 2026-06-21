@@ -259,6 +259,158 @@ class _MarkFlowHomePageState extends State<MarkFlowHomePage> {
       },
     ));
 
+    // ---- 删除线 ----
+    cr.registerCommand(Command(
+      id: 'editor.insertStrikethrough',
+      title: '删除线',
+      description: '插入删除线文本',
+      category: '编辑器',
+      icon: Icons.strikethrough_s_rounded,
+      handler: (args) async {
+        _editorKey.currentState?.insertStrikethrough();
+      },
+    ));
+
+    // ---- 行内代码 ----
+    cr.registerCommand(Command(
+      id: 'editor.insertInlineCode',
+      title: '行内代码',
+      description: '插入行内代码',
+      category: '编辑器',
+      icon: Icons.code_rounded,
+      handler: (args) async {
+        _editorKey.currentState?.insertInlineCode();
+      },
+    ));
+
+    // ---- 下划线 ----
+    cr.registerCommand(Command(
+      id: 'editor.insertUnderline',
+      title: '下划线',
+      description: '插入下划线文本',
+      category: '编辑器',
+      icon: Icons.format_underline_rounded,
+      handler: (args) async {
+        _editorKey.currentState?.insertUnderline();
+      },
+    ));
+
+    // ---- 图片 ----
+    cr.registerCommand(Command(
+      id: 'editor.insertImage',
+      title: '图片',
+      description: '插入图片',
+      category: '编辑器',
+      icon: Icons.image_rounded,
+      handler: (args) async {
+        _editorKey.currentState?.insertImage();
+      },
+    ));
+
+    // ---- 标题层级 H1-H6 ----
+    for (int i = 1; i <= 6; i++) {
+      cr.registerCommand(Command(
+        id: 'editor.insertHeading$i',
+        title: '标题 $i',
+        description: '插入 $i 级标题',
+        category: '编辑器',
+        icon: Icons.title_rounded,
+        handler: (args) async {
+          _editorKey.currentState?.insertHeading(i);
+        },
+      ));
+    }
+
+    // ---- 提升/降低标题级别 ----
+    cr.registerCommand(Command(
+      id: 'editor.increaseHeadingLevel',
+      title: '提升标题级别',
+      description: '提升标题级别 (H3 → H2)',
+      category: '编辑器',
+      icon: Icons.arrow_upward_rounded,
+      handler: (args) async {
+        _editorKey.currentState?.increaseHeadingLevel();
+      },
+    ));
+    cr.registerCommand(Command(
+      id: 'editor.decreaseHeadingLevel',
+      title: '降低标题级别',
+      description: '降低标题级别 (H2 → H3)',
+      category: '编辑器',
+      icon: Icons.arrow_downward_rounded,
+      handler: (args) async {
+        _editorKey.currentState?.decreaseHeadingLevel();
+      },
+    ));
+
+    // ---- 任务列表 ----
+    cr.registerCommand(Command(
+      id: 'editor.insertTaskList',
+      title: '任务列表',
+      description: '插入任务列表',
+      category: '编辑器',
+      icon: Icons.check_box_rounded,
+      handler: (args) async {
+        _editorKey.currentState?.insertTaskList();
+      },
+    ));
+
+    // ---- 缩进/反缩进 ----
+    cr.registerCommand(Command(
+      id: 'editor.indent',
+      title: '缩进',
+      description: '增加缩进',
+      category: '编辑器',
+      icon: Icons.format_indent_increase_rounded,
+      handler: (args) async {
+        _editorKey.currentState?.indent();
+      },
+    ));
+    cr.registerCommand(Command(
+      id: 'editor.outdent',
+      title: '反缩进',
+      description: '减少缩进',
+      category: '编辑器',
+      icon: Icons.format_indent_decrease_rounded,
+      handler: (args) async {
+        _editorKey.currentState?.outdent();
+      },
+    ));
+
+    // ---- 代码块 ----
+    cr.registerCommand(Command(
+      id: 'editor.insertCodeBlock',
+      title: '代码块',
+      description: '插入代码块',
+      category: '编辑器',
+      icon: Icons.code_rounded,
+      handler: (args) async {
+        _editorKey.currentState?.insertCodeBlock();
+      },
+    ));
+
+    // ---- 数学公式 ----
+    cr.registerCommand(Command(
+      id: 'editor.insertInlineMath',
+      title: '行内公式',
+      description: '插入行内数学公式',
+      category: '编辑器',
+      icon: Icons.functions_rounded,
+      handler: (args) async {
+        _editorKey.currentState?.insertInlineMath();
+      },
+    ));
+    cr.registerCommand(Command(
+      id: 'editor.insertBlockMath',
+      title: '块级公式',
+      description: '插入块级数学公式',
+      category: '编辑器',
+      icon: Icons.functions_rounded,
+      handler: (args) async {
+        _editorKey.currentState?.insertBlockMath();
+      },
+    ));
+
     // ---- 视图命令 ----
     cr.registerCommand(Command(
       id: 'view.toggleSidebar',

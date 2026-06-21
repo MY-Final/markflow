@@ -55,12 +55,53 @@ class _SettingsPanelState extends State<SettingsPanel> {
 
   // Shortcut settings (display only)
   final Map<String, String> _shortcuts = {
+    // 文件操作
+    '新建文件': 'Ctrl+N',
+    '打开文件': 'Ctrl+O',
     '保存': 'Ctrl+S',
+    '另存为': 'Ctrl+Shift+S',
+    '关闭': 'Ctrl+W',
+    // 编辑操作
     '撤销': 'Ctrl+Z',
-    '重做': 'Ctrl+Y',
+    '重做': 'Ctrl+Shift+Z',
+    '查找': 'Ctrl+F',
+    '替换': 'Ctrl+H',
+    '复制为纯文本': 'Ctrl+Shift+C',
+    '粘贴为纯文本': 'Ctrl+Shift+V',
+    // 基础格式化
     '加粗': 'Ctrl+B',
     '斜体': 'Ctrl+I',
+    '删除线': 'Alt+Shift+5',
+    '行内代码': 'Ctrl+`',
+    '下划线': 'Ctrl+U',
+    '链接': 'Ctrl+K',
+    '图片': 'Ctrl+Shift+I',
+    // 标题层级
+    '标题 1-6': 'Ctrl+1 ~ Ctrl+6',
+    '提升标题级别': 'Ctrl+Shift+=',
+    '降低标题级别': 'Ctrl+Shift+-',
+    // 列表与结构
+    '无序列表': 'Ctrl+Shift+]',
+    '有序列表': 'Ctrl+Shift+[',
+    '任务列表': 'Ctrl+Shift+X',
+    '引用块': 'Ctrl+Shift+Q',
+    // 代码与公式
+    '代码块': 'Ctrl+Shift+K',
+    '行内公式': 'Ctrl+Shift+M',
+    // 插入操作
+    '分割线': 'Ctrl+Shift+D',
+    '表格': 'Ctrl+Shift+B',
+    // 视图模式
+    '源码模式': 'Ctrl+/',
+    '专注模式': 'F8',
+    '打字机模式': 'F9',
+    '全屏': 'F11',
+    '大纲面板': 'Ctrl+Shift+1',
+    '文件树面板': 'Ctrl+Shift+2',
+    // 命令面板
     '命令面板': 'Ctrl+Shift+P',
+    // 导出
+    '导出 PDF': 'Ctrl+Shift+E',
   };
 
   @override
@@ -402,7 +443,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: theme.primary,
+            activeThumbColor: theme.primary,
           ),
         ],
       ),

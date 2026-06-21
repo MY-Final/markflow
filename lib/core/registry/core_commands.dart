@@ -337,6 +337,130 @@ void registerCoreCommands() {
     'commandPalette.open',
   );
 
+  // ==================== 基础格式化 ====================
+  shortcutRegistry.registerShortcut(
+    'alt+shift+5',
+    'editor.insertStrikethrough',
+  );
+  shortcutRegistry.registerShortcut(
+    'ctrl+`',
+    'editor.insertInlineCode',
+  );
+  shortcutRegistry.registerShortcut(
+    'ctrl+u',
+    'editor.insertUnderline',
+  );
+  shortcutRegistry.registerShortcut(
+    'ctrl+shift+i',
+    'editor.insertImage',
+  );
+  shortcutRegistry.registerShortcut(
+    'ctrl+k',
+    'editor.insertLink',
+  );
+
+  // ==================== 标题层级 ====================
+  shortcutRegistry.registerShortcut('ctrl+1', 'editor.insertHeading1');
+  shortcutRegistry.registerShortcut('ctrl+2', 'editor.insertHeading2');
+  shortcutRegistry.registerShortcut('ctrl+3', 'editor.insertHeading3');
+  shortcutRegistry.registerShortcut('ctrl+4', 'editor.insertHeading4');
+  shortcutRegistry.registerShortcut('ctrl+5', 'editor.insertHeading5');
+  shortcutRegistry.registerShortcut('ctrl+6', 'editor.insertHeading6');
+  shortcutRegistry.registerShortcut('ctrl+shift+=', 'editor.increaseHeadingLevel');
+  shortcutRegistry.registerShortcut('ctrl+shift+-', 'editor.decreaseHeadingLevel');
+
+  // ==================== 列表与结构 ====================
+  shortcutRegistry.registerShortcut(
+    'ctrl+shift+]',
+    'editor.insertUnorderedList',
+  );
+  shortcutRegistry.registerShortcut(
+    'ctrl+shift+[',
+    'editor.insertOrderedList',
+  );
+  shortcutRegistry.registerShortcut(
+    'ctrl+shift+x',
+    'editor.insertTaskList',
+  );
+  shortcutRegistry.registerShortcut(
+    'ctrl+shift+q',
+    'editor.insertQuote',
+  );
+
+  // ==================== 代码与公式 ====================
+  shortcutRegistry.registerShortcut(
+    'ctrl+shift+k',
+    'editor.insertCodeBlock',
+  );
+  shortcutRegistry.registerShortcut(
+    'ctrl+shift+m',
+    'editor.insertInlineMath',
+  );
+
+  // ==================== 文件操作 ====================
+  shortcutRegistry.registerShortcut(
+    'ctrl+shift+s',
+    'editor.saveAs',
+  );
+  shortcutRegistry.registerShortcut(
+    'ctrl+w',
+    'file.close',
+  );
+
+  // ==================== 编辑操作 ====================
+  shortcutRegistry.registerShortcut(
+    'ctrl+f',
+    'editor.find',
+  );
+  shortcutRegistry.registerShortcut(
+    'ctrl+h',
+    'editor.replace',
+  );
+  shortcutRegistry.registerShortcut(
+    'ctrl+shift+c',
+    'editor.copyAsPlainText',
+  );
+  shortcutRegistry.registerShortcut(
+    'ctrl+shift+v',
+    'editor.pasteAsPlainText',
+  );
+
+  // ==================== 视图模式 ====================
+  shortcutRegistry.registerShortcut(
+    'ctrl+/',
+    'view.sourceMode',
+  );
+  shortcutRegistry.registerShortcut(
+    'f8',
+    'view.focusMode',
+  );
+  shortcutRegistry.registerShortcut(
+    'f9',
+    'view.typewriterMode',
+  );
+  shortcutRegistry.registerShortcut(
+    'f11',
+    'view.fullscreen',
+  );
+  shortcutRegistry.registerShortcut(
+    'ctrl+shift+1',
+    'view.outlinePanel',
+  );
+  shortcutRegistry.registerShortcut(
+    'ctrl+shift+2',
+    'view.fileTreePanel',
+  );
+
+  // ==================== 插入操作 ====================
+  shortcutRegistry.registerShortcut(
+    'ctrl+shift+d',
+    'editor.insertDivider',
+  );
+  shortcutRegistry.registerShortcut(
+    'ctrl+shift+b',
+    'editor.insertTable',
+  );
+
   // Register Menus
   menuRegistry.registerMenu('file', [
     MenuItem(id: 'new', label: '新建文件', commandId: 'file.new', icon: Icons.note_add_rounded),
