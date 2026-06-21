@@ -443,7 +443,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: theme.primary,
+            activeThumbColor: theme.primary,
           ),
         ],
       ),

@@ -311,7 +311,7 @@ class ModernMarkdownEditorState extends State<ModernMarkdownEditor> {
   }
 
   void insertBlockMath() {
-    wrapSelectedText('$$\n', '\n$$');
+    wrapSelectedText('\$\$\n', '\n\$\$');
   }
 
   // ==================== 链接与图片 ====================
